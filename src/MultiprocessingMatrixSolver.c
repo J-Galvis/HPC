@@ -83,7 +83,64 @@ void multiply_matrices_forked(int** A, int rows_A, int cols_A,
     }
 }
 
+
+void test_3x3() { // This fuction allows me to test if the current implementation does multiplication of a specific matrix correctly
+    // Known input matrices
+    int rows = 3;
+    int cols = 3;
+
+    int a[3][3] = { {1, 2, 3},
+                    {4, 5, 6},
+                    {7, 8, 9} };
+
+    int b[3][3] = { {9, 8, 7},
+                    {6, 5, 4},
+                    {3, 2, 1} };
+
+    // Build int** wrappers so create/free/multiply functions work as-is
+    int** A = create_matrix(3, 3);
+    int** B = create_matrix(3, 3);
+
+    // C must live in shared memory so that writes from child processes
+    // are visible in the parent after they exit.
+    // mmap with MAP_SHARED | MAP_ANONYMOUS gives all forked children
+    // a view into the same physical pages.
+    int* C_data = mmap(NULL,
+                       rows * cols * sizeof(int),
+                       PROT_READ | PROT_WRITE,
+                       MAP_SHARED | MAP_ANONYMOUS,
+                       -1, 0);
+
+
+    // Build the row-pointer array locally (each process gets its own copy
+    // after fork, but every pointer still points into the shared C_data).
+    int** C = (int**)malloc(rows * sizeof(int*));
+    for (int i = 0; i < rows; i++) {
+        C[i] = C_data + i * cols;
+    }
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            A[i][j] = a[i][j];
+            B[i][j] = b[i][j];
+        }
+    }
+
+    multiply_matrices_forked(A, 3, 3, B, 3, C);
+
+    print_matrix(C, 3, 3, 'C');
+
+    free_matrix(A, 3);
+    free_matrix(B, 3);
+    free(C);
+    munmap(C_data, rows * cols * sizeof(int));    // release shared memory
+}
+
+
 int main(int argc, char* argv[]) {
+
+    //test_3x3();
+
     struct rusage start, end;
     getrusage(RUSAGE_SELF, &start);
 
