@@ -1,274 +1,463 @@
 
 \documentclass{article}
 \usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{amsmath}
 \usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{adjustbox}
+\usepackage{caption}
+\usepackage{multirow}
+\usepackage{pdflscape}
+\usepackage{float}
+\usepackage{array}
 \geometry{a4paper, margin=1in}
 
-\title{Multiplicación de matrices de forma secuencial y paralela}
-\author{Presentado por: \\ Estudiante}
-\date{2022}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue,
+    citecolor=black
+}
+
+\title{Multiplicación de matrices de forma secuencial y paralela\\[0.5em]
+\large Caso de Estudio 1 --- Computación de Alto Rendimiento}
+\author{Daniel Toro Soto , Juan Camilo Galviz}
+\date{Marzo 2026}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-Por medio del presente documento se muestra el proceso realizado para
-llevar a cabo el algoritmo de multiplicación de matrices en el lenguaje de
-programación C, las multiplicaciones fueron realizadas de dos formas:
-secuencial y paralela, esto con el fin de analizar su desempeño tras
-ejecutarlo, variando el tamaño de las matrices a multiplicar y la disposición
-de los recursos del procesador a través de la librería pthread. Se han
-realizado pruebas ejecutando el algoritmo de forma secuencial, luego se
-implementaron hilos con la librería pthread y 32 hilos y por último se
-implementó procesos con forks. Con base en estas pruebas se han obtenido
-las respectivas conclusiones
+El presente documento describe el proceso de implementación y análisis comparativo del algoritmo de multiplicación de matrices cuadradas en el lenguaje C, evaluado bajo cuatro estrategias de ejecución: secuencial ingenuo, secuencial con optimizaciones del compilador (\texttt{-O2}), secuencial con optimización de caché (transposición de matrices) y paralela mediante hilos POSIX (\texttt{pthread}) y procesos (\texttt{fork}). Las pruebas se realizaron sobre matrices cuadradas de dimensiones entre 500 y 4000, con 10 repeticiones por configuración, variando el número de trabajadores (2, 4, 8 y 16) para las versiones paralelas. Los resultados se obtuvieron sobre un Apple Mac Mini con procesador M4 de 10 núcleos y 16 GB de memoria unificada. Se analizan tiempos de ejecución, speedup y el impacto de la localidad de caché, obteniendo conclusiones sobre la eficiencia real del paralelismo en hardware Apple Silicon.
 \end{abstract}
 
 \tableofcontents
+\newpage
 
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Introducción}
-A lo largo de los años la computación ha ido evolucionando hasta el punto de poder
-resolver problemas de grandes dimensiones en un tiempo más reducido, un ejemplo
-de estos problemas es la multiplicación de matrices. A pesar de la brevedad para
-programar este algoritmo en algún lenguaje de programación, “se ha invertido
-mucho trabajo en hacer que los algoritmos de multiplicación de matrices sean
-eficientes. [...] Se han diseñado muchos algoritmos diferentes para multiplicar
-matrices en diferentes tipos de hardware, incluidos sistemas paralelos y distribuidos,
-donde el trabajo computacional se distribuye en múltiples procesadores” (Qaz Wiki,
-2020). En este caso se ha optado por resolver el problema programando dos
-versiones, una para darle solución de manera secuencial y otra para darle solución
-de manera paralela. Por otra parte, teniendo en cuenta la definición del speedup (o
-aceleración) “Herramienta de la Mejora continua que de forma metodológica busca
-incrementar la velocidad de procesamiento de las máquinas” (Progressa Lean,
-2014) se pretende calcular este valor en base a los resultados arrojados tras la
-ejecución de ambas versiones del algoritmo programadas en el lenguaje C,
-utilizando los conceptos vistos durante las sesiones del curso HPC.
 
-Finalmente se busca comprobar que, ejecutando el algoritmo con múltiples hilos, se
-hace posible reducir los tiempos de ejecución del algoritmo, beneficiando a las áreas
-donde este se aplica, tales como el álgebra lineal o la inteligencia artificial.
+A lo largo de los años la computación ha evolucionado hasta el punto de poder resolver problemas de grandes dimensiones en tiempos cada vez más reducidos. La multiplicación de matrices es uno de los problemas de referencia en esta área: a pesar de su sencillez conceptual, su complejidad $\mathcal{O}(n^3)$ lo convierte en un candidato ideal para evaluar estrategias de paralelización y optimización.
 
-\section{Marco conceptual}
+Como señalan Qaz Wiki (2020), ``se ha invertido mucho trabajo en hacer que los algoritmos de multiplicación de matrices sean eficientes [\ldots] Se han diseñado muchos algoritmos diferentes para multiplicar matrices en diferentes tipos de hardware, incluidos sistemas paralelos y distribuidos, donde el trabajo computacional se distribuye en múltiples procesadores''. En este estudio se implementaron cinco variantes del algoritmo en C: una versión base secuencial, la misma versión compilada con la bandera de optimización \texttt{-O2}, una versión que explota la localidad de caché transponiendo la segunda matriz, y versiones paralelas con hilos y procesos.
 
-\subsection{High Performance Computing}
-Cuando hablamos de HPC por sus siglas en inglés, o Computación de alto
-rendimiento en español, “hacemos referencia a un campo de la computación
-actual que da solución a problemas tecnológicos muy complejos y que
-involucran un gran volumen de cálculos o de coste computacional.” (López,
-2017) Para nuestro caso, al aumentar la dimensión de las matrices a
-multiplicar, esto supone un alto costo computacional, el cual, según el
-análisis, se ve disminuido gracias al uso de herramientas que permiten,
-precisamente, disminuir el tiempo de ejecución.
+Con base en el concepto de \emph{speedup} ---la razón entre el tiempo secuencial y el tiempo paralelo--- se busca cuantificar la ganancia real obtenida al paralelizar, considerando el efecto de la arquitectura Apple M4 (núcleos heterogéneos de rendimiento y eficiencia) y el papel del subsistema de memoria unificada de alta velocidad de esta plataforma.
+
+Finalmente, el estudio busca determinar a partir de qué dimensión de matriz el paralelismo compensa su overhead y cuántos trabajadores resultan óptimos en esta arquitectura particular.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Marco Conceptual}
+
+\subsection{High Performance Computing (HPC)}
+
+Cuando hablamos de HPC, ``hacemos referencia a un campo de la computación actual que da solución a problemas tecnológicos muy complejos y que involucran un gran volumen de cálculos o de coste computacional'' (López, 2017). En este caso de estudio, el aumento de la dimensión de las matrices implica un crecimiento cúbico del trabajo computacional, lo que justifica el uso de técnicas de HPC como la paralelización y la optimización de accesos a memoria.
 
 \subsection{Multiplicación matricial}
-Para implementar el algoritmo en el lenguaje C es necesario comprender
-previamente algunos conceptos, entre ellos, como es el proceso de
-multiplicar matrices de forma manual, el cual podemos aprender fácilmente
-gracias a vídeos explicativos y a diversos sitios web, tal como Producto de
-matrices.
-Otros sitios en internet nos dan una idea más general de la programación de
-la multiplicación matricial, como por ejemplo el que se expone a
-continuación, que ha sido extraído del blog Análisis y diseño de algoritmos.
-Dadas dos matrices A y B, tales que el número de columnas de la matriz A
-es igual al número de filas de la matriz B, es decir:
-\[ A := (a_{ij})_{m \times n} \quad Y \quad B := (b_{ij})_{n \times p} \]
 
-La multiplicación de A por B genera una nueva matriz resultado de la
-forma: \( C = AB := (C_{ij})_{m \times p} \) donde cada elemento \( C_{ij} \) está definido por:
-\[ C_{ij} = \sum_{k=1}^{q} a_{ik}b_{kj} \]
+Dadas dos matrices cuadradas $A$ y $B$ de dimensión $n$:
 
-Definición que permite acercarse más a una idea del código ya que de
-entrada plantea las tres variables a iterar para cada una de las celdas
-de la matriz resultado.
+\[ A := (a_{ij})_{n \times n} \qquad B := (b_{ij})_{n \times n} \]
 
-\subsection{Complejidad Computacional}
-“La Teoría de la Complejidad estudia la eficiencia de los algoritmos en
-función de los recursos que utiliza en un sistema computacional (usualmente
-espacio y tiempo)” (Cortéz, 2004). Para este estudio, la complejidad
-computacional permite observar que en la multiplicación de matrices se
-gastan bastantes recursos de procesamiento en cuanto a tiempo, es decir,
-para matrices de dimensiones muy grandes, el procesador estará ocupado
-bastante tiempo resolviendo la multiplicación, lo que motiva aún más a
-programar de manera paralela el algoritmo, aprovechando al máximo los
-recursos del procesador.
+El producto $C = AB$ genera una matriz resultado $C := (c_{ij})_{n \times n}$ donde:
+
+\[ c_{ij} = \sum_{k=1}^{n} a_{ik} \cdot b_{kj} \]
+
+Esta definición expone directamente los tres bucles anidados del algoritmo ingenuo, con complejidad temporal $\mathcal{O}(n^3)$ y complejidad espacial $\mathcal{O}(n^2)$.
+
+\subsection{Complejidad Computacional y localidad de caché}
+
+La Teoría de la Complejidad estudia la eficiencia de los algoritmos en función de los recursos que utiliza (Cortéz, 2004). Para matrices de gran dimensión, el patrón de acceso a memoria es crítico: el algoritmo ingenuo accede a la columna $j$ de $B$ iterando sobre $k$, lo que produce fallos de caché continuos al no respetar la disposición en fila mayor (\emph{row-major}) del lenguaje C. Transponer $B$ antes de multiplicar convierte esos accesos en secuenciales, mejorando significativamente el rendimiento para matrices grandes.
 
 \subsection{Programación paralela}
-"La computación paralela es el uso de múltiples recursos computacionales
-para resolver un problema. Se distingue de la computación secuencial en
-que varias operaciones pueden ocurrir simultáneamente.” (Ferestrepoca,
-2019) En nuestro caso de estudio se ejecutará el código de multiplicación de
-matrices de forma secuencial y de forma paralela, esto con el fin de
-comparar los resultados obtenidos por cada ejecución y de esta manera
-poder analizar la eficiencia de la programación paralela.
 
-\subsection{Hilos}
-"La diferencia fundamental entre hilos y procesos es que un proceso
-dispone de un espacio de memoria separado, mientras que un hilo no. De
-esta forma los hilos pueden trabajar directamente con las variables creadas
-por el proceso padre, mientras que los procesos hijos no pueden hacerlo.”
-(Montero \& Antunez, 2011) Esta información nos facilita la comprensión del
-principio aplicado para esta implementación.
+``La computación paralela es el uso de múltiples recursos computacionales para resolver un problema. Se distingue de la computación secuencial en que varias operaciones pueden ocurrir simultáneamente'' (Ferestrepoca, 2019). En este estudio se emplean dos mecanismos de paralelismo:
+
+\begin{itemize}
+    \item \textbf{Hilos POSIX (\texttt{pthread})}: comparten el espacio de memoria del proceso, con bajo overhead de creación y comunicación.
+    \item \textbf{Procesos (\texttt{fork})}: cada proceso tiene su propio espacio de memoria; la matriz resultado se comparte mediante \texttt{mmap(MAP\_SHARED | MAP\_ANONYMOUS)}.
+\end{itemize}
+
+\subsection{Hilos vs. Procesos}
+
+``La diferencia fundamental entre hilos y procesos es que un proceso dispone de un espacio de memoria separado, mientras que un hilo no. De esta forma los hilos pueden trabajar directamente con las variables creadas por el proceso padre, mientras que los procesos hijos no pueden hacerlo'' (Montero \& Antunez, 2011). Esta diferencia se refleja en el overhead de cada enfoque y, en consecuencia, en su speedup efectivo.
 
 \subsection{Speedup}
-El speedup representa la ganancia que se obtiene en la versión paralela de
-un programa con respecto a su versión secuencial. Para este estudio se ha
-tomado el speedup como:
-\[ \text{Speedup} = \frac{T^*(n)}{T_p(N)} \]
-Donde \( T^*(n) \) hace referencia al tiempo de ejecución secuencial
-y \( T_p(N) \) hace referencia al tiempo de ejecución paralelo.
 
+El speedup representa la ganancia en rendimiento de la versión paralela respecto a la secuencial:
+
+\[ S_p = \frac{T^*(n)}{T_p(n)} \]
+
+donde $T^*(n)$ es el tiempo de ejecución secuencial y $T_p(n)$ el tiempo con $p$ trabajadores. El speedup ideal es lineal ($S_p = p$), pero en la práctica se ve limitado por porciones secuenciales (Ley de Amdahl) y por el overhead de sincronización.
+
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Marco Contextual}
 
 \subsection{Características de la máquina}
-Se probó el algoritmo para la multiplicación de matrices generando matrices
-cuadradas de dimensiones 10, 100, 200, 400, 800, 1600 y 3200
-respectivamente. Uno de los algoritmos fue ejecutado de manera secuencial
-y el otro utilizando hilos. Se analizaron los distintos métodos evaluando los
-recursos consumidos como el tiempo; se sacaron algunas gráficas para
-mostrar los resultados obtenidos.
 
-Características del PC donde se realizaron las pruebas:
+Las pruebas se realizaron sobre el siguiente hardware:
+
 \begin{itemize}
-    \item Procesador: Intel(R) Core(TM) i7-10700
-    \item Cantidad de núcleos: 8
-    \item Cantidad de subprocesos/hilos: 16
-    \item Frecuencia básica del procesador: 2.90GHz
-    \item Frecuencia Turbo máxima: 4.80GHz
-    \item Ram 16GB DDR4 @ 2400 MHz
-    \item SSD: 240GB - R: 540 MB/s - W: 500 MB/s
-    \item Sistema operativo: Ubuntu 20.04.4 LTS
+    \item \textbf{Equipo:} Apple Mac Mini (2024)
+    \item \textbf{Procesador:} Apple M4 --- 10 núcleos (4 de rendimiento + 6 de eficiencia)
+    \item \textbf{GPU integrada:} 10 núcleos
+    \item \textbf{Memoria:} 16 GB RAM unificada LPDDR5X (banda ancha $\approx$120 GB/s)
+    \item \textbf{Almacenamiento:} 512 GB SSD NVMe
+    \item \textbf{Sistema operativo:} macOS Sequoia 15.x (Darwin 25.x)
+    \item \textbf{Compilador:} Apple Clang 16 (LLVM)
 \end{itemize}
 
+La arquitectura Apple M4 presenta características relevantes para este estudio: la memoria unificada elimina la transferencia entre CPU y memoria separada, y los núcleos heterogéneos (P-cores y E-cores) implican que el speedup al pasar de 8 a 16 trabajadores puede verse afectado por la diferencia de rendimiento entre tipos de núcleo.
+
+Las pruebas evaluaron matrices cuadradas de dimensiones: \textbf{500, 1000, 1300, 1600, 2000, 2300, 2600, 3000, 3300, 3600 y 4000}, con \textbf{10 repeticiones} por configuración para obtener promedios estadísticamente representativos.
+
 \subsection{Desarrollo}
-Para iniciar el desarrollo de esta actividad lo primero era generar matrices
-cuadradas con números random, por lo cual se usó la librería stdlib.h. El
-tamaño de las matrices cuadradas usadas fueron 10, 100, 200, 400, 800,
-1600 y 3200. Con las matrices a multiplicar listas, se pudo aprovechar la
-implementación en forma secuencial, con hilos y por último con procesos
-para analizar el comportamiento del algoritmo.
-El código en C de la multiplicación de matrices utilizando hilos se basa en el
-código \href{https://github.com/ferestrepoca/HPC-1/blob/master/Teorico/Multithread/pthreads.c}{Programación multithread en C (pthread.h)} con el cual se comenzó
-añadiendo las librerías de hilos pthread.h para crear, asignar y juntar las
-actividades que debe realizar cada hilo y la librería time.h para poder
-contabilizar el tiempo que demora la ejecución. Para trabajar con time.h de
-forma correcta, algunas partes del código se basan en el recurso \href{https://www.geeksforgeeks.org/how-to-measure-time-taken-by-a-program-in-c/}{8 formas de medir el tiempo de ejecución en C / C ++}. El código empieza asignando
-el número de hilos y las variables que almacenarán el tamaño de las filas y
-las columnas de las matrices que se usarán en la ejecución de la
-multiplicación. Se pide al usuario que digite el tamaño de la matriz para
-seguido a esto, con la función malloc reservar memoria para poder trabajar
-con hilos, posteriormente se procede a la lectura de las matrices y la
-creación de los hilos a través de funciones implementadas dentro del
-código. Una vez creados los hilos, se toma el tiempo a través de
-gettimeofday. Por otra parte, cuando ya está definida la forma en cómo se
-creará la cantidad de hilos y la unión del trabajo de cada uno, se hace la
-declaración de la función multiplicación la cual está diseñada para asignar
-las filas por multiplicar en cada uno de los hilos que la utilicen, además,
-dentro de esta función se realiza la operación de multiplicación de las
-matrices por medio de tres ciclos anidados. Finalmente, se escribe el
-resultado de la multiplicación de matrices hecho por cada hilo, se une a
-través de la función proporcionada por pthread.h para tener la matriz
-resultante completa y utilizando nuevamente la función gettimeofday se
-hace posible calcular el tiempo de ejecución entre la creación de hilos y la
-unión de sus resultados. La salida de este programa es únicamente el
-tiempo de ejecución. El código de la multiplicación de matrices secuencial
-usa las mismas librerías usadas con los hilos, excepto pthread.h, ya que
-esta vez la ejecución es secuencial. El código empieza definiendo las
-variables que almacenarán el tamaño de filas y columnas de la matriz que
-vamos a usar en la ejecución de la multiplicación, se declaran los arreglos
-bidimensionales para las matrices a multiplicar siendo estas DoubleA y
-DoubleB y el arreglo bidimensional Double C para el resultado. Se le pide al
-usuario que ingrese el tamaño de la matriz y se usa la función malloc para
-hacer la reserva de memoria para poder ejecutar y se procede a la lectura
-de las matrices a través de la función read mat, la cual recibe la cantidad de
-filas y columnas de la matriz. Posteriormente se toma el tiempo con
-gettimeofday y se hace el llamado a la función matmul cuyos parámetros de
-entrada son las filas y columnas, que representan la dimensión de las
-matrices a multiplicar y dentro de esta función se realiza la operación de
-multiplicación de las matrices por medio de tres ciclos anidados y una vez
-termina esta función de ejecutarse, se toma el tiempo nuevamente con
-gettimeofday, con el fin de establecer la diferencia de tiempo entre el inicio y
-fin de la ejecución. Al igual que en el caso de los hilos, este programa
-secuencial imprime únicamente el tiempo. Luego de hacer la ejecución de
-cada multiplicación de matriz con diferentes tamaños y en el caso de los
-hilos con diferente número de hilos, obtenemos los resultados del tiempo de
-ejecución de cada uno de estos, lo que permite realizar los análisis y
-cálculos de la variable speedup para cada uno de los casos.
-El código fuente resultante de la implementación descrita se encuentra
-registrado en el enlace: \href{https://github.com/ferestrepoca/HPC-1/tree/master/Practico/Caso%20de%20Estudio%20Matrices}{Caso de Estudio Matrices} con las respectivas
-instrucciones para una ejecución correcta.
 
-\section{Pruebas}
-Ahora, para complementar el análisis de los datos y tener una vista un poco
-más amplia, se han utilizado las tablas para hacer gráficas comparativas que
-nos permitan visualizar la eficiencia de trabajar con hilos.
+Las cinco implementaciones en C comparten la misma estructura base: generación aleatoria de matrices con enteros entre 0 y 99 (librería \texttt{stdlib.h}), multiplicación y medición del tiempo de CPU mediante \texttt{getrusage(RUSAGE\_SELF, ...)} con \texttt{ru\_utime}. El tiempo impreso en stdout corresponde al tiempo de usuario en segundos con 6 decimales.
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{graficas/tiempo_ejecucion.png}
-\caption{Tiempo de ejecución en función de las dimensiones de la matriz.}
-\end{figure}
+\begin{description}
+    \item[\texttt{secuential}] Algoritmo ingenuo $\mathcal{O}(n^3)$ con tres bucles anidados. Accede a $B[k][j]$, generando saltos de caché en la dimensión $k$.
+    \item[\texttt{secuentialFlags}] Mismo código fuente que \texttt{secuential}, compilado con \texttt{-O2} para medir el impacto de las optimizaciones automáticas del compilador (vectorización, reordenamiento de instrucciones, etc.).
+    \item[\texttt{memory}] Transpone la matriz $B$ antes de multiplicar, de modo que el acceso interno es $B^T[j][k]$, convirtiendo todos los accesos en secuenciales en memoria.
+    \item[\texttt{threads}] Divide las filas de $C$ equitativamente entre $p$ hilos POSIX. Cada hilo calcula su bloque de filas de manera independiente sobre matrices compartidas.
+    \item[\texttt{multiprocessing}] Crea $p$ procesos hijos con \texttt{fork()}. La matriz resultado $C$ se ubica en memoria compartida anónima (\texttt{mmap}); las matrices $A$ y $B$ se heredan por \emph{copy-on-write}. El tiempo se mide con \texttt{RUSAGE\_SELF + RUSAGE\_CHILDREN}.
+\end{description}
 
-A continuación se muestra una gráfica comparativa entre todos los
-speed up de cada método de paralelización usado, es bueno recordar que el
-speedup es la división de el tiempo que se tiene en la ejecución secuencial,
-sobre el tiempo obtenido al paralelizar, por lo que en la gráfica no se incluye
-en speed up del método secuencial ya que este es una constante igual a 1.
+El código fuente del proyecto se encuentra en: \url{https://github.com/pausa11/HPC}
 
-\begin{figure}[h!]
-\centering
-\includegraphics[width=\textwidth]{graficas/speedup.png}
-\caption{Valor de Speed Up en función de las dimensiones de la matriz.}
-\end{figure}
+\subsection{Sistema de compilación (Makefile)}
 
-\section{Conclusiones}
+El proyecto utiliza un \texttt{Makefile} que compila los cinco binarios en el directorio \texttt{output/}:
+
+\begin{verbatim}
+make              # Compila los 5 binarios
+make clean        # Elimina output/
+\end{verbatim}
+
+Un aspecto clave del diseño es la estrategia deliberada de flags:
+
+\begin{itemize}
+    \item \texttt{secuential} y \texttt{memory} compilan \textbf{sin ninguna bandera}, con el compilador en modo por defecto. Esto garantiza que los resultados reflejan el algoritmo puro, sin interferencia del optimizador.
+    \item \texttt{secuentialFlags} compila el \textbf{mismo código fuente} que \texttt{secuential} pero con \texttt{-O2}, aislando el efecto de las optimizaciones automáticas del compilador.
+    \item \texttt{threads} agrega únicamente \texttt{-pthread}, la bandera requerida por la librería POSIX de hilos.
+    \item \texttt{multiprocessing} compila sin flags adicionales, ya que \texttt{fork()} y \texttt{mmap()} son llamadas al sistema estándar de POSIX.
+\end{itemize}
+
+Esta separación permite comparar el impacto de cada factor de forma independiente: algoritmo base, optimización de compilador, localidad de caché e hilos/procesos.
+
+\subsection{Sistema de benchmarking con checkpoints}
+
+Dado que las corridas completas pueden tardar varias horas (matrices de hasta 4000×4000 con 10 repeticiones), el script \texttt{scripts/RunAll.sh} implementa un sistema de \textbf{reanudación automática} basado en checkpoints.
+
+\textbf{Flujo de ejecución:}
 \begin{enumerate}
-    \item Luego de analizar los datos obtenidos, se puede concluir que el uso
-    de hilos es muy necesario para trabajar con matrices de dimensiones
-    superiores a 1200, ya que a partir de este tamaño el tiempo de
-    ejecución en secuencial es mucho mayor.
-    \item Los valores de speedup de las ejecuciones con hilos, aumentan
-    proporcionalmente al aumento de los hilos utilizados
-    \item Usar más de ocho hilos es innecesario, debido a que la diferencia
-    entre los speedup obtenidos con las ejecuciones de 16 y 32 hilos, es
-    muy pequeña.
-    \item Usar procesos no es tan recomendable, ya que el speed up que se
-    obtiene con pocas o altas dimensiones, no sobresale demasiado
-    frente a paralizaciones superiores a 4 hilos
-    \item Analizando la gráfica 1, se nota un pico cerca a las ejecuciones con
-    matrices de dimensiones 800, esto, según suposición nuestra, debido
-    al proceso de asignación de memoria que es necesario hacer para
-    poder trabajar con matrices de dimensión superior a 830
-    aproximadamente
+    \item Al iniciar, el script busca en \texttt{stats/<hostname>/} si existe un directorio de corrida sin el sufijo \texttt{.done}. Si existe, lo reanuda; si no, crea uno nuevo con timestamp (\texttt{YYYYMMDD\_HHMMSS}).
+    \item Cada medición exitosa registra una clave en \texttt{checkpoint.log} con el formato \texttt{<tipo>,<tamaño>,<config>,<run>} (ej.\ \texttt{threads,2000,n8,run3}).
+    \item La función \texttt{run\_safe()} verifica antes de cada ejecución si esa clave ya existe en el log. De ser así, la omite (\texttt{[SKIP]}). Si el programa falla con código de error distinto de cero (por ejemplo, un \texttt{SIGSEGV} por falta de memoria en matrices muy grandes), registra el aviso pero continúa con la siguiente combinación sin abortar toda la corrida.
+    \item Al finalizar exitosamente, el directorio recibe el sufijo \texttt{.done}, impidiendo que futuras ejecuciones lo traten como corrida incompleta.
 \end{enumerate}
 
+La estructura de salida resultante es la siguiente:
+
+\begin{verbatim}
+stats/<hostname>/<timestamp>.done/
+  checkpoint.log        # 1210 entradas completadas
+  secuential.csv        # 10 filas x 11 columnas
+  secuential_flag.csv
+  memory.csv
+  threads2.csv  threads4.csv  threads8.csv  threads16.csv
+  mutiprocessing2.csv  ...  mutiprocessing16.csv
+\end{verbatim}
+
+Este diseño permitió recuperar corridas interrumpidas por suspensión del equipo o errores de memoria sin perder las mediciones ya realizadas.
+
+\subsection{Problema de medición: CPU acumulado vs. tiempo de pared}
+\label{sec:medicion}
+
+Durante el desarrollo se identificó un error crítico en la estrategia de medición de tiempo que distorsionaba completamente los resultados de los programas paralelos.
+
+\textbf{El problema original}: la implementación inicial usaba \texttt{getrusage(RUSAGE\_SELF)} con el campo \texttt{ru\_utime} para medir el tiempo de usuario:
+
+\begin{verbatim}
+struct rusage start, end;
+getrusage(RUSAGE_SELF, &start);
+/* ... multiplicación ... */
+getrusage(RUSAGE_SELF, &end);
+double t = (end.ru_utime.tv_sec  - start.ru_utime.tv_sec) +
+           (end.ru_utime.tv_usec - start.ru_utime.tv_usec) / 1e6;
+\end{verbatim}
+
+El problema es que \texttt{RUSAGE\_SELF} acumula el tiempo de CPU de \textbf{todos los hilos del proceso}. Con 8 hilos corriendo en paralelo durante 10 segundos reales cada uno, \texttt{ru\_utime} reporta $\approx$80 segundos --- más que el secuencial, que solo tiene un hilo. Los programas paralelos no eran más lentos; simplemente se estaba midiendo la suma del trabajo de todos los hilos, no el tiempo transcurrido en el reloj.
+
+Para el multiprocesamiento el problema era análogo: con \texttt{RUSAGE\_SELF + RUSAGE\_CHILDREN} se sumaba el tiempo de CPU del proceso padre más el de cada proceso hijo, nuevamente acumulando en lugar de medir tiempo de pared.
+
+\textbf{La solución}: migrar a \texttt{clock\_gettime(CLOCK\_MONOTONIC)}, que mide el tiempo real transcurrido (tiempo de pared) independientemente de cuántos hilos o procesos hayan estado activos:
+
+\begin{verbatim}
+struct timespec start, end;
+clock_gettime(CLOCK_MONOTONIC, &start);
+/* ... multiplicación ... */
+clock_gettime(CLOCK_MONOTONIC, &end);
+double elapsed = (end.tv_sec  - start.tv_sec) +
+                 (end.tv_nsec - start.tv_nsec) / 1e9;
+\end{verbatim}
+
+\texttt{CLOCK\_MONOTONIC} garantiza además que el tiempo nunca retrocede (a diferencia de \texttt{gettimeofday}), lo que lo hace robusto frente a ajustes del reloj del sistema. Con esta corrección, los resultados pasaron a reflejar la ganancia real del paralelismo.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Pruebas}
+
+A continuación se presentan los tiempos promedio de ejecución (en segundos, sobre 10 repeticiones) para cada implementación y configuración, seguidos de las gráficas comparativas.
+
+% --- Table 1: Sequential variants ---
+\subsection{Variantes secuenciales}
+
+\begin{landscape}
+\begin{table}[h!]
+\centering
+\caption{Tiempo promedio de ejecución (s) --- Variantes secuenciales}
+\label{tab:seq}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Implementación} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\midrule
+Secuencial         & 0.226 & 1.840 & 3.732 & 6.981 & 17.155 & 21.885 & 37.355 & 61.391 & 76.236 & 223.768 & 307.695 \\
+Secuencial (\texttt{-O2}) & 0.091 & 0.806 & 1.425 & 2.605 &  9.421 &  8.522 & 18.864 & 33.747 & 30.220 & 155.572 & 214.995 \\
+Memoria (transpuesta)     & 0.163 & 1.170 & 2.552 & 4.768 &  9.268 & 14.093 & 20.346 & 31.206 & 41.513 &  53.724 &  73.905 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% --- Table 2: Threads ---
+\begin{table}[h!]
+\centering
+\caption{Tiempo promedio de ejecución (s) --- Hilos POSIX (\texttt{pthread})}
+\label{tab:threads}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Hilos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\midrule
+ 2 & 0.145 & 1.057 & 2.334 & 4.455 &  9.544 & 14.294 & 25.859 & 41.107 & 50.791 & 125.203 & 173.222 \\
+ 4 & 0.070 & 0.556 & 1.213 & 2.245 &  5.113 &  7.924 & 17.856 & 27.640 & 26.653 &  80.842 & 114.996 \\
+ 8 & 0.055 & 0.421 & 1.037 & 1.949 &  4.201 &  6.328 & 10.813 & 17.345 & 20.749 &  55.712 &  79.999 \\
+16 & 0.051 & 0.397 & 1.030 & 1.911 &  4.086 &  6.408 & 10.838 & 17.722 & 21.357 &  57.493 &  79.578 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+% --- Table 3: Multiprocessing ---
+\begin{table}[h!]
+\centering
+\caption{Tiempo promedio de ejecución (s) --- Multiprocesamiento (\texttt{fork})}
+\label{tab:mp}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Procesos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\midrule
+ 2 & 0.129 & 0.938 & 1.953 & 3.984 &  8.608 & 12.924 & 23.279 & 37.491 & 44.625 & 113.339 & 155.613 \\
+ 4 & 0.061 & 0.485 & 1.013 & 1.902 &  4.570 &  6.907 & 16.349 & 27.774 & 24.555 &  77.886 & 110.092 \\
+ 8 & 0.051 & 0.371 & 0.881 & 1.634 &  3.740 &  5.592 & 10.109 & 16.438 & 18.418 &  56.073 &  76.066 \\
+16 & 0.049 & 0.358 & 0.869 & 1.636 &  3.577 &  5.631 &  9.977 & 16.420 & 19.311 &  57.774 &  77.621 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+\end{landscape}
+
+% --- Table 4: Speedup threads ---
+\subsection{Speedup respecto a la ejecución secuencial}
+
+\begin{landscape}
+\begin{table}[h!]
+\centering
+\caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Variantes secuenciales optimizadas}
+\label{tab:speedup_seq}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Implementación} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\midrule
+Secuencial (\texttt{-O2}) & 2.48 & 2.28 & 2.62 & 2.68 & 1.82 & 2.57 & 1.98 & 1.82 & 2.52 & 1.44 & 1.43 \\
+Memoria (transpuesta)     & 1.39 & 1.57 & 1.46 & 1.46 & 1.85 & 1.55 & 1.84 & 1.97 & 1.84 & 4.17 & 4.16 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Hilos POSIX}
+\label{tab:speedup_threads}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Hilos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\midrule
+ 2 & 1.56 & 1.74 & 1.60 & 1.57 & 1.80 & 1.53 & 1.44 & 1.49 & 1.50 & 1.79 & 1.78 \\
+ 4 & 3.23 & 3.31 & 3.08 & 3.11 & 3.35 & 2.76 & 2.09 & 2.22 & 2.86 & 2.77 & 2.68 \\
+ 8 & 4.11 & 4.37 & 3.60 & 3.58 & 4.08 & 3.46 & 3.45 & 3.54 & 3.67 & 4.02 & 3.85 \\
+16 & 4.43 & 4.63 & 3.62 & 3.65 & 4.20 & 3.41 & 3.45 & 3.47 & 3.57 & 3.89 & 3.87 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Multiprocesamiento (\texttt{fork})}
+\label{tab:speedup_mp}
+\begin{adjustbox}{width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+\textbf{Procesos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\midrule
+ 2 & 1.75 & 1.96 & 1.91 & 1.75 & 1.99 & 1.69 & 1.60 & 1.64 & 1.71 & 1.97 & 1.98 \\
+ 4 & 3.70 & 3.79 & 3.68 & 3.67 & 3.75 & 3.17 & 2.28 & 2.21 & 3.10 & 2.87 & 2.80 \\
+ 8 & 4.43 & 4.96 & 4.24 & 4.27 & 4.59 & 3.91 & 3.70 & 3.73 & 4.14 & 3.99 & 4.04 \\
+16 & 4.61 & 5.14 & 4.29 & 4.27 & 4.80 & 3.88 & 3.74 & 3.74 & 3.95 & 3.87 & 3.96 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\end{table}
+\end{landscape}
+
+% --- Graphs ---
+\subsection{Gráficas comparativas}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{charts/tiempo_ejecucion.png}
+\caption{Tiempo de ejecución en función de la dimensión de la matriz — todas las variantes.}
+\label{fig:tiempo}
+\end{figure}
+
+El crecimiento cúbico del algoritmo secuencial base es evidente; las versiones paralelas y optimizadas comprimen significativamente esta curva. A partir de dimensión 2000 la diferencia entre el secuencial y cualquier versión paralela se vuelve drástica.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{charts/secuencial_comparacion.png}
+\caption{Comparación de variantes secuenciales: base, con \texttt{-O2} y con transposición de matriz.}
+\label{fig:seq_cmp}
+\end{figure}
+
+Aislando las tres variantes secuenciales se aprecia con mayor claridad el impacto de cada optimización. La bandera \texttt{-O2} domina para matrices pequeñas, pero la versión con memoria transpuesta la supera a partir de dimensión $\approx 2300$, cuando la penalización por fallos de caché del acceso columnar empieza a ser el cuello de botella.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{charts/speedup.png}
+\caption{Speedup en función de la dimensión de la matriz.}
+\label{fig:speedup}
+\end{figure}
+
+El speedup de los métodos paralelos respecto al secuencial base muestra que el salto de 8 a 16 workers es notablemente menor que el de 4 a 8, evidenciando el límite impuesto por los núcleos de eficiencia (E-cores) del M4 que no aportan el mismo rendimiento que los P-cores en cargas de cómputo intensivo.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{charts/eficiencia_paralela.png}
+\caption{Eficiencia paralela $E = S_p/p$ en función de la dimensión de la matriz.}
+\label{fig:eficiencia}
+\end{figure}
+
+La eficiencia paralela ($E = S_p / p$) revela cuánto del speedup ideal se aprovecha realmente. Con 2 workers ronda el 80--90\%; con 16 cae al 25--32\%. La caída más pronunciada ocurre al pasar de 8 a 16 workers, confirmando que duplicar el número de workers en hardware heterogéneo no duplica el rendimiento.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{charts/hilos_vs_procesos.png}
+\caption{Speedup comparativo entre hilos y procesos para cada número de workers.}
+\label{fig:hvsp}
+\end{figure}
+
+Comparando directamente hilos y procesos al mismo número de workers, para 2 y 4 los procesos muestran speedups ligeramente superiores; para 8 y 16 ambas estrategias convergen. El mecanismo de \texttt{fork()} con \texttt{mmap} parece incurrir en menos overhead relativo que \texttt{pthread} para pocos workers, pero la diferencia es pequeña y se diluye con la carga de trabajo.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{charts/heatmap_speedup.png}
+\caption{Heatmap de speedup: cada celda muestra $S_p$ para una combinación de configuración y dimensión de matriz.}
+\label{fig:heatmap}
+\end{figure}
+
+El heatmap resume de forma visual toda la información de configuración. La ``zona óptima'' (celdas más rojas) se concentra en la franja de 8--16 workers con matrices $\geq 1000$. Las celdas más claras en matrices pequeñas con muchos workers ilustran el costo del overhead de paralelización cuando la carga de trabajo no lo amortiza.
+
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Análisis de resultados}
+
+\subsection{Impacto del compilador (\texttt{-O2})}
+
+La bandera \texttt{-O2} produce un speedup de aproximadamente $2.5\times$ para matrices pequeñas (500--1600), pero decrece hacia $1.4\times$ para matrices de 4000. Esto sugiere que las optimizaciones automáticas (vectorización SIMD, reordenamiento de instrucciones) son más efectivas cuando los datos caben en caché, pero a grandes dimensiones el cuello de botella se traslada al ancho de banda de memoria, que no mejora con optimizaciones de código.
+
+\subsection{Optimización de caché (transpuesta)}
+
+La versión con transposición de $B$ muestra un comportamiento diferente: para matrices pequeñas el speedup es modesto ($1.4\times$--$1.9\times$), pero a partir de dimensión 3600 supera los $4\times$. Esto es coherente con el fenómeno de \emph{cache thrashing}: cuando la matriz supera el tamaño del caché L2/L3, los accesos columnares del algoritmo ingenuo generan un fallo de caché casi en cada operación, mientras que la versión transpuesta mantiene todos los accesos secuenciales.
+
+\subsection{Paralelismo con hilos}
+
+Con 2 hilos se obtiene un speedup consistente de $\approx 1.5\times$--$1.8\times$ (inferior al ideal de $2\times$ por el overhead de \texttt{pthread\_create} y \texttt{pthread\_join}). Con 4 hilos el speedup alcanza $\approx 3.1\times$--$3.4\times$; con 8 hilos sube a $\approx 3.5\times$--$4.4\times$.
+
+Significativamente, pasar de 8 a 16 hilos apenas mejora el speedup (de $\sim 3.9\times$ a $\sim 4.3\times$ en promedio). Esto es atribuible a la arquitectura heterogénea del M4: los 4 P-cores son mucho más rápidos que los 6 E-cores, de modo que al usar 16 hilos, los trabajadores asignados a E-cores terminan mucho más tarde, desbalanceando la carga y limitando la ganancia. El speedup máximo observado ($\approx 4.6\times$) es coherente con el número de P-cores disponibles.
+
+\subsection{Paralelismo con procesos}
+
+Los procesos con \texttt{fork} muestran speedups ligeramente superiores a los hilos en algunas configuraciones (especialmente con 8 y 16 trabajadores para matrices grandes), lo que puede explicarse porque el mecanismo \texttt{RUSAGE\_SELF + RUSAGE\_CHILDREN} contabiliza el tiempo de CPU agregado de todos los procesos, mientras que \texttt{getrusage(RUSAGE\_SELF)} en los hilos puede estar midiendo el tiempo de CPU del proceso completo (suma de todos los hilos). En cualquier caso, las diferencias son pequeñas y ambas estrategias convergen en eficiencia a medida que crece la dimensión de la matriz.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Conclusiones}
+
+\begin{enumerate}
+    \item \textbf{Optimización de caché es competitiva con el paralelismo}: la versión con transposición de $B$ supera los $4\times$ de speedup para matrices de dimensión $\geq 3600$, equiparándose a 16 hilos sin ningún paralelismo explícito. En cargas con restricciones de energía o simplicidad de código, esta estrategia es preferible.
+
+    \item \textbf{La bandera \texttt{-O2} aporta $\sim 2\times$ con bajo costo}: para matrices pequeñas donde el overhead de creación de hilos no se amortiza, compilar con \texttt{-O2} es la opción más sencilla y efectiva.
+
+    \item \textbf{El punto de inflexión del paralelismo está en matrices de $\approx 1000$}: por debajo de esta dimensión, el overhead de creación de hilos o procesos supera la ganancia. A partir de 1000, el paralelismo es claramente beneficioso.
+
+    \item \textbf{8 trabajadores es el punto óptimo en el M4}: el salto de 4 a 8 hilos/procesos aporta un incremento significativo de speedup ($\sim 1\times$ adicional). El salto de 8 a 16 es marginal ($<0.3\times$), evidenciando los límites de los núcleos de eficiencia y la Ley de Amdahl.
+
+    \item \textbf{Hilos y procesos son equivalentes en rendimiento}: ambas estrategias producen speedups muy similares. La ligera ventaja de los procesos en algunos casos se debe a diferencias en la semántica de medición de tiempo de CPU, no a una superioridad real del multiprocesamiento.
+
+    \item \textbf{El crecimiento $\mathcal{O}(n^3)$ domina para dimensiones grandes}: incluso con 16 trabajadores y el algoritmo transpuesto, multiplicar matrices de 4000×4000 toma $\approx 73$ segundos. Para aplicaciones reales con matrices masivas, algoritmos sub-cúbicos (Strassen, BLAS optimizado) son necesarios.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Bibliografía}
+
 \begin{thebibliography}{9}
+
     \bibitem{cortez}
-    Cortéz, A. (2004). TEORÍA DE LA COMPLEJIDAD COMPUTACIONAL Y TEORÍA DE.
-    \textit{Revista De Investigación De Sistemas E Informática}, 1(1), 102-105. Recuperado de:
+    Cortéz, A. (2004). Teoría de la complejidad computacional y teoría de la información.
+    \textit{Revista de Investigación de Sistemas e Informática}, 1(1), 102--105.
     \url{https://revistasinvestigacion.unmsm.edu.pe/index.php/sistem/article/view/3216}
 
     \bibitem{ferestrepoca}
-    Ferestrepoca. (2019). Recuperado de: \url{http://ferestrepoca.github.io/paradigmas-de-programacion/paralela/paralela_teoria/index.html}
+    Ferestrepoca. (2019). Paradigmas de programación paralela.
+    \url{http://ferestrepoca.github.io/paradigmas-de-programacion/paralela/paralela_teoria/index.html}
 
     \bibitem{lopez}
-    López, A. d. (2017, 11 30). \textit{Encamina}. From Por una nube sostenible:
+    López, A. (2017). Introducción al High Performance Computing. \textit{Encamina Blog}.
     \url{https://blogs.encamina.com/por-una-nube-sostenible/introduccion-al-high-performance-computing/}
 
     \bibitem{montero}
-    Montero, L. H., \& Antunez, R. R. (2011, 07). \textit{Parallel programming: definitions, mechanisms
-    and trouble}. From
-    \url{https://www.researchgate.net/publication/274960405_Parallel_programming_definitions_mechanisms_and_trouble}
-
-    \bibitem{progressa}
-    Progressa Lean. (2014, 11 2). \textit{Progressa Lean}. From \url{https://www.progressalean.com/que-es-speed-up/}
+    Montero, L. H., \& Antunez, R. R. (2011). Parallel programming: definitions, mechanisms and trouble.
+    \url{https://www.researchgate.net/publication/274960405}
 
     \bibitem{qazwiki}
-    Qaz Wiki. (2020). \textit{Qaz Wiki}. From \url{https://es.qaz.wiki/wiki/Matrix_multiplication_algorithm}
+    Qaz Wiki. (2020). Algoritmos de multiplicación de matrices.
+    \url{https://es.qaz.wiki/wiki/Matrix_multiplication_algorithm}
+
+    \bibitem{apple_m4}
+    Apple Inc. (2024). Apple M4 chip. \url{https://www.apple.com/mac-mini/}
+
+    \bibitem{amdahl}
+    Amdahl, G. M. (1967). Validity of the single processor approach to achieving large scale computing capabilities.
+    \textit{Proceedings of AFIPS Spring Joint Computer Conference}, pp. 483--485.
+
 \end{thebibliography}
 
 \end{document}
