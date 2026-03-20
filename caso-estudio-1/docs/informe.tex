@@ -212,125 +212,468 @@ double elapsed = (end.tv_sec  - start.tv_sec) +
 
 A continuación se presentan los tiempos promedio de ejecución (en segundos, sobre 10 repeticiones) para cada implementación y configuración, seguidos de las gráficas comparativas.
 
-% --- Table 1: Sequential variants ---
-\subsection{Variantes secuenciales}
-
-\begin{landscape}
-\begin{table}[h!]
-\centering
-\caption{Tiempo promedio de ejecución (s) --- Variantes secuenciales}
-\label{tab:seq}
-\begin{adjustbox}{width=\linewidth}
-\begin{tabular}{lrrrrrrrrrrr}
-\toprule
-\textbf{Implementación} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
-\midrule
-Secuencial         & 0.226 & 1.840 & 3.732 & 6.981 & 17.155 & 21.885 & 37.355 & 61.391 & 76.236 & 223.768 & 307.695 \\
-Secuencial (\texttt{-O2}) & 0.091 & 0.806 & 1.425 & 2.605 &  9.421 &  8.522 & 18.864 & 33.747 & 30.220 & 155.572 & 214.995 \\
-Memoria (transpuesta)     & 0.163 & 1.170 & 2.552 & 4.768 &  9.268 & 14.093 & 20.346 & 31.206 & 41.513 &  53.724 &  73.905 \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-% --- Table 2: Threads ---
-\begin{table}[h!]
-\centering
-\caption{Tiempo promedio de ejecución (s) --- Hilos POSIX (\texttt{pthread})}
-\label{tab:threads}
-\begin{adjustbox}{width=\linewidth}
-\begin{tabular}{lrrrrrrrrrrr}
-\toprule
-\textbf{Hilos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
-\midrule
- 2 & 0.145 & 1.057 & 2.334 & 4.455 &  9.544 & 14.294 & 25.859 & 41.107 & 50.791 & 125.203 & 173.222 \\
- 4 & 0.070 & 0.556 & 1.213 & 2.245 &  5.113 &  7.924 & 17.856 & 27.640 & 26.653 &  80.842 & 114.996 \\
- 8 & 0.055 & 0.421 & 1.037 & 1.949 &  4.201 &  6.328 & 10.813 & 17.345 & 20.749 &  55.712 &  79.999 \\
-16 & 0.051 & 0.397 & 1.030 & 1.911 &  4.086 &  6.408 & 10.838 & 17.722 & 21.357 &  57.493 &  79.578 \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\end{table}
-
-% --- Table 3: Multiprocessing ---
-\begin{table}[h!]
-\centering
-\caption{Tiempo promedio de ejecución (s) --- Multiprocesamiento (\texttt{fork})}
-\label{tab:mp}
-\begin{adjustbox}{width=\linewidth}
-\begin{tabular}{lrrrrrrrrrrr}
-\toprule
-\textbf{Procesos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
-\midrule
- 2 & 0.129 & 0.938 & 1.953 & 3.984 &  8.608 & 12.924 & 23.279 & 37.491 & 44.625 & 113.339 & 155.613 \\
- 4 & 0.061 & 0.485 & 1.013 & 1.902 &  4.570 &  6.907 & 16.349 & 27.774 & 24.555 &  77.886 & 110.092 \\
- 8 & 0.051 & 0.371 & 0.881 & 1.634 &  3.740 &  5.592 & 10.109 & 16.438 & 18.418 &  56.073 &  76.066 \\
-16 & 0.049 & 0.358 & 0.869 & 1.636 &  3.577 &  5.631 &  9.977 & 16.420 & 19.311 &  57.774 &  77.621 \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\end{table}
-\end{landscape}
-
-% --- Table 4: Speedup threads ---
-\subsection{Speedup respecto a la ejecución secuencial}
-
-\begin{landscape}
-\begin{table}[h!]
-\centering
-\caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Variantes secuenciales optimizadas}
-\label{tab:speedup_seq}
-\begin{adjustbox}{width=\linewidth}
-\begin{tabular}{lrrrrrrrrrrr}
-\toprule
-\textbf{Implementación} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
-\midrule
-Secuencial (\texttt{-O2}) & 2.48 & 2.28 & 2.62 & 2.68 & 1.82 & 2.57 & 1.98 & 1.82 & 2.52 & 1.44 & 1.43 \\
-Memoria (transpuesta)     & 1.39 & 1.57 & 1.46 & 1.46 & 1.85 & 1.55 & 1.84 & 1.97 & 1.84 & 4.17 & 4.16 \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\end{table}
+\subsection{Secuencial}
 
 \begin{table}[h!]
 \centering
-\caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Hilos POSIX}
-\label{tab:speedup_threads}
-\begin{adjustbox}{width=\linewidth}
-\begin{tabular}{lrrrrrrrrrrr}
-\toprule
-\textbf{Hilos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
-\midrule
- 2 & 1.56 & 1.74 & 1.60 & 1.57 & 1.80 & 1.53 & 1.44 & 1.49 & 1.50 & 1.79 & 1.78 \\
- 4 & 3.23 & 3.31 & 3.08 & 3.11 & 3.35 & 2.76 & 2.09 & 2.22 & 2.86 & 2.77 & 2.68 \\
- 8 & 4.11 & 4.37 & 3.60 & 3.58 & 4.08 & 3.46 & 3.45 & 3.54 & 3.67 & 4.02 & 3.85 \\
-16 & 4.43 & 4.63 & 3.62 & 3.65 & 4.20 & 3.41 & 3.45 & 3.47 & 3.57 & 3.89 & 3.87 \\
-\bottomrule
+\caption{Resultados de la ejecución secuencial.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Secuencial}} \\
+\hline
+\textbf{Dimensiones} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.2424 & 1.7740 & 3.6358 & 6.8231 & 16.8662 & 21.8290 & 36.7362 & 60.7772 & 76.0408 & 224.9021 & 311.7885 \\
+2  & 0.2251 & 1.9065 & 3.8284 & 7.1391 & 17.4430 & 21.9414 & 37.9732 & 62.0054 & 76.4309 & 222.6342 & 303.6016 \\
+3  & 0.2188 & 1.8412 & 3.7366 & 6.9543 & 16.5286 & 21.5346 & 36.0005 & 59.6817 & 74.2137 & 220.6480 & 303.8271 \\
+4  & 0.2172 & 1.8337 & 3.7074 & 6.9244 & 16.6750 & 21.3882 & 35.7337 & 59.2924 & 73.9349 & 220.8070 & 303.6079 \\
+5  & 0.2174 & 1.8285 & 3.7029 & 6.9075 & 16.6371 & 21.3407 & 35.7943 & 59.1817 & 73.9824 & 221.0847 & 303.1106 \\
+6  & 0.2172 & 1.8444 & 3.7009 & 6.9154 & 16.6191 & 21.2897 & 35.7026 & 59.1398 & 73.7936 & 220.4881 & 305.9618 \\
+7  & 0.2162 & 1.8264 & 3.7050 & 6.9105 & 16.4523 & 21.5837 & 36.7144 & 59.3578 & 73.9886 & 220.5352 & 303.0252 \\
+8  & 0.2162 & 1.8275 & 3.7011 & 6.9049 & 16.7490 & 21.2863 & 35.7579 & 58.9758 & 73.9120 & 220.2637 & 303.1744 \\
+9  & 0.2171 & 1.8224 & 3.7057 & 6.9053 & 16.6755 & 21.2638 & 35.6191 & 59.1342 & 73.3610 & 220.6785 & 305.6457 \\
+10 & 0.2159 & 1.8229 & 3.6941 & 6.9012 & 16.6306 & 21.2257 & 35.7015 & 59.1027 & 73.6678 & 220.3174 & 303.3598 \\
+\hline
+\textbf{Pr} & \textbf{0.2204} & \textbf{1.8328} & \textbf{3.7118} & \textbf{6.9286} & \textbf{16.6276} & \textbf{21.4683} & \textbf{36.1733} & \textbf{59.6649} & \textbf{74.3326} & \textbf{221.2359} & \textbf{304.7103} \\
+\hline
 \end{tabular}
-\end{adjustbox}
+\label{tab:secuencial}
+
+\footnotesize{Fuente: Elaboración propia.}
 \end{table}
+
+\subsection{Secuencial con flag}
 
 \begin{table}[h!]
 \centering
-\caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Multiprocesamiento (\texttt{fork})}
-\label{tab:speedup_mp}
-\begin{adjustbox}{width=\linewidth}
-\begin{tabular}{lrrrrrrrrrrr}
-\toprule
-\textbf{Procesos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
-\midrule
- 2 & 1.75 & 1.96 & 1.91 & 1.75 & 1.99 & 1.69 & 1.60 & 1.64 & 1.71 & 1.97 & 1.98 \\
- 4 & 3.70 & 3.79 & 3.68 & 3.67 & 3.75 & 3.17 & 2.28 & 2.21 & 3.10 & 2.87 & 2.80 \\
- 8 & 4.43 & 4.96 & 4.24 & 4.27 & 4.59 & 3.91 & 3.70 & 3.73 & 4.14 & 3.99 & 4.04 \\
-16 & 4.61 & 5.14 & 4.29 & 4.27 & 4.80 & 3.88 & 3.74 & 3.74 & 3.95 & 3.87 & 3.96 \\
-\bottomrule
+\caption{Resultados de la ejecución secuencial con flag.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Secuencial Flag}} \\
+\hline
+\textbf{Dimensiones} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.1114 & 0.8064 & 1.4206 & 2.6020 & 9.4045 & 8.5509 & 18.9184 & 33.7694 & 30.1213 & 155.5912 & 215.0485 \\
+2  & 0.0783 & 0.8066 & 1.4298 & 2.6085 & 9.4383 & 8.4932 & 18.8105 & 33.7251 & 30.3186 & 155.5530 & 214.9413 \\
+3  & 0.0775 & 0.8070 & 1.4302 & 2.6095 & 9.5052 & 8.5155 & 18.2619 & 33.2180 & 29.7458 & 155.6369 & 215.0071 \\
+4  & 0.0779 & 0.8107 & 1.4252 & 2.6077 & 9.4858 & 8.5762 & 18.4624 & 33.9045 & 29.7730 & 155.6876 & 215.0617 \\
+5  & 0.0785 & 0.8093 & 1.4278 & 2.6031 & 9.3951 & 8.5296 & 18.9355 & 32.8358 & 30.3526 & 155.4830 & 215.0293 \\
+6  & 0.0780 & 0.8133 & 1.4262 & 2.6010 & 9.3411 & 8.5431 & 18.5397 & 33.4427 & 29.5868 & 155.5133 & 214.9728 \\
+7  & 0.0781 & 0.8155 & 1.4251 & 2.6023 & 9.4492 & 8.5613 & 18.3424 & 32.6311 & 29.9534 & 155.4831 & 215.0998 \\
+8  & 0.0790 & 0.8128 & 1.4275 & 2.6106 & 9.4580 & 8.4787 & 18.1945 & 32.9409 & 30.0746 & 155.6172 & 215.0716 \\
+9  & 0.0784 & 0.8089 & 1.4301 & 2.6043 & 9.3704 & 8.4737 & 18.1035 & 32.8535 & 29.6002 & 155.5337 & 214.9720 \\
+10 & 0.0785 & 0.8113 & 1.4288 & 2.6070 & 9.2772 & 8.4691 & 18.7310 & 33.7321 & 30.7115 & 155.6028 & 215.2506 \\
+\hline
+\textbf{Pr} & \textbf{0.0816} & \textbf{0.8102} & \textbf{1.4271} & \textbf{2.6056} & \textbf{9.4125} & \textbf{8.5191} & \textbf{18.5300} & \textbf{33.3053} & \textbf{30.0238} & \textbf{155.5702} & \textbf{215.0455} \\
+\hline
+\textbf{Speedup} & \textbf{2.7014} & \textbf{2.2622} & \textbf{2.6004} & \textbf{2.6591} & \textbf{1.7665} & \textbf{2.5200} & \textbf{1.9521} & \textbf{1.7912} & \textbf{2.4758} & \textbf{1.4221} & \textbf{1.4169} \\
+\hline
 \end{tabular}
-\end{adjustbox}
+\label{tab:secuencial_flag}
+
+\footnotesize{Fuente: Elaboración propia.}
 \end{table}
-\end{landscape}
+
+%% TABLE 1: MEMORY
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con memoria compartida.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Memoria Compartida}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.1810 & 1.1733 & 2.5524 & 4.7731 & 9.2692 & 14.0967 & 20.3470 & 31.2011 & 41.5041 & 53.7134 & 73.8984 \\
+2  & 0.1475 & 1.1682 & 2.5517 & 4.7637 & 9.2672 & 14.0901 & 20.3441 & 31.2104 & 41.5218 & 53.7355 & 73.9114 \\
+3  & 0.1482 & 1.1725 & 2.5512 & 4.7541 & 9.2733 & 14.0989 & 20.3473 & 31.2109 & 41.5054 & 53.7372 & 73.9751 \\
+4  & 0.1487 & 1.1697 & 2.5532 & 4.7467 & 9.2708 & 14.0860 & 20.3364 & 31.1988 & 41.5074 & 53.7343 & 73.8389 \\
+5  & 0.1486 & 1.1713 & 2.5527 & 4.7526 & 9.2842 & 14.0867 & 20.3523 & 31.1903 & 41.4999 & 53.7380 & 73.8257 \\
+6  & 0.1486 & 1.1721 & 2.5505 & 4.7474 & 9.2681 & 14.0817 & 20.3460 & 31.1913 & 41.5123 & 53.7250 & 73.8584 \\
+7  & 0.1472 & 1.1722 & 2.5481 & 4.7515 & 9.2658 & 14.0849 & 20.3414 & 31.1986 & 41.5045 & 53.7333 & 73.8572 \\
+8  & 0.1505 & 1.1709 & 2.5627 & 4.7532 & 9.2611 & 14.0947 & 20.3420 & 31.2029 & 41.5105 & 53.7346 & 73.8159 \\
+9  & 0.1482 & 1.1717 & 2.5540 & 4.7489 & 9.2702 & 14.0859 & 20.3440 & 31.2082 & 41.4796 & 53.7296 & 73.8231 \\
+10 & 0.1487 & 1.1685 & 2.5536 & 4.7504 & 9.2631 & 14.0816 & 20.3363 & 31.2011 & 41.4787 & 53.7746 & 73.8276 \\
+\hline
+\textbf{Pr} & \textbf{0.1517} & \textbf{1.1710} & \textbf{2.5530} & \textbf{4.7542} & \textbf{9.2693} & \textbf{14.0887} & \textbf{20.3437} & \textbf{31.2014} & \textbf{41.5024} & \textbf{53.7355} & \textbf{73.8632} \\
+\hline
+\textbf{Speedup} & \textbf{1.4523} & \textbf{1.5652} & \textbf{1.4539} & \textbf{1.4574} & \textbf{1.7938} & \textbf{1.5237} & \textbf{1.7782} & \textbf{1.9122} & \textbf{1.7909} & \textbf{4.1170} & \textbf{4.1255} \\
+\hline
+\end{tabular}
+\label{tab:memoria}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 2: MULTIPROCESSING 2
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con multiprocesamiento de 2 procesos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Multiprocesamiento 2 Procesos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.1429 & 0.9373 & 1.9557 & 4.0138 & 8.5986 & 12.9371 & 23.4569 & 37.9774 & 44.9045 & 113.5843 & 155.9533 \\
+2  & 0.1143 & 0.9384 & 1.9497 & 3.9549 & 8.6176 & 12.9108 & 23.1021 & 37.0049 & 44.3464 & 113.0938 & 155.2725 \\
+3  & 0.1149 & 0.9376 & 1.9864 & 4.0278 & 8.5981 & 12.8297 & 23.0653 & 37.0694 & 45.0395 & 113.4212 & 154.7572 \\
+4  & 0.1167 & 0.9364 & 1.9564 & 3.9401 & 8.5804 & 12.7792 & 22.9347 & 36.9075 & 44.3354 & 114.0897 & 154.7126 \\
+5  & 0.1130 & 0.9369 & 1.9834 & 4.0667 & 8.4859 & 12.6938 & 23.0471 & 37.2018 & 44.6837 & 112.8909 & 156.4468 \\
+6  & 0.1138 & 0.9341 & 1.9660 & 4.0226 & 8.5286 & 12.7535 & 22.8232 & 37.0604 & 44.7767 & 112.9346 & 155.8391 \\
+7  & 0.1130 & 0.9345 & 1.9821 & 4.0386 & 8.5395 & 12.7659 & 22.8817 & 37.2298 & 44.3559 & 113.7848 & 156.7856 \\
+8  & 0.1125 & 0.9378 & 1.9716 & 4.0740 & 8.5793 & 12.8104 & 22.9394 & 37.0883 & 43.8730 & 114.3844 & 156.6778 \\
+9  & 0.1197 & 0.9372 & 1.9998 & 3.9591 & 8.4135 & 12.8721 & 23.1572 & 37.3087 & 44.6027 & 112.7399 & 157.8157 \\
+10 & 0.1126 & 0.9326 & 1.9750 & 3.9368 & 8.4025 & 12.7816 & 22.9457 & 37.2539 & 44.2820 & 112.1757 & 155.7674 \\
+\hline
+\textbf{Pr} & \textbf{0.1173} & \textbf{0.9363} & \textbf{1.9726} & \textbf{4.0035} & \textbf{8.5344} & \textbf{12.8134} & \textbf{23.0353} & \textbf{37.2102} & \textbf{44.5200} & \textbf{113.3099} & \textbf{156.0028} \\
+\hline
+\textbf{Speedup} & \textbf{1.8780} & \textbf{1.9576} & \textbf{1.8818} & \textbf{1.7308} & \textbf{1.9481} & \textbf{1.6755} & \textbf{1.5703} & \textbf{1.6034} & \textbf{1.6696} & \textbf{1.9524} & \textbf{1.9532} \\
+\hline
+\end{tabular}
+\label{tab:mp2}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 3: MULTIPROCESSING 4
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con multiprocesamiento de 4 procesos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Multiprocesamiento 4 Procesos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.0628 & 0.4826 & 1.0200 & 1.9060 & 4.5577 & 6.9276 & 16.5971 & 27.7566 & 24.4782 & 77.9001 & 109.2969 \\
+2  & 0.0603 & 0.4870 & 1.0067 & 1.8973 & 4.5821 & 6.8858 & 16.1001 & 27.7920 & 24.6311 & 77.8718 & 110.8876 \\
+3  & 0.0615 & 0.4921 & 1.0102 & 1.8924 & 4.5931 & 6.7783 & 16.3469 & 27.8234 & 24.3863 & 80.0305 & 109.0149 \\
+4  & 0.0608 & 0.4867 & 0.9881 & 1.9206 & 4.5718 & 6.3395 & 16.4075 & 27.3821 & 24.5415 & 80.1903 & 111.6487 \\
+5  & 0.0620 & 0.4840 & 0.9992 & 1.8874 & 4.5294 & 6.8448 & 16.5630 & 27.2921 & 24.4688 & 77.3804 & 111.3375 \\
+6  & 0.0601 & 0.4862 & 0.9965 & 1.9017 & 4.5768 & 6.9531 & 16.2526 & 27.4144 & 24.1561 & 79.7426 & 108.4640 \\
+7  & 0.0611 & 0.4828 & 0.9984 & 1.9097 & 4.6559 & 6.8605 & 15.8918 & 27.9737 & 24.5292 & 77.6989 & 107.7155 \\
+8  & 0.0593 & 0.4832 & 1.0035 & 1.8915 & 4.5336 & 6.7577 & 16.3921 & 27.8407 & 24.6638 & 77.9018 & 110.8594 \\
+9  & 0.0619 & 0.4835 & 0.9998 & 1.8792 & 4.4719 & 6.8315 & 16.2167 & 27.5950 & 24.5320 & 77.8102 & 111.6106 \\
+10 & 0.0603 & 0.4875 & 1.0055 & 1.9153 & 4.5988 & 6.8875 & 16.3580 & 26.7663 & 24.2713 & 79.7618 & 111.5128 \\
+\hline
+\textbf{Pr} & \textbf{0.0610} & \textbf{0.4856} & \textbf{1.0028} & \textbf{1.9001} & \textbf{4.5671} & \textbf{6.8066} & \textbf{16.3126} & \textbf{27.5636} & \textbf{24.4658} & \textbf{78.6288} & \textbf{110.2348} \\
+\hline
+\textbf{Speedup} & \textbf{3.6118} & \textbf{3.7744} & \textbf{3.7014} & \textbf{3.6465} & \textbf{3.6406} & \textbf{3.1541} & \textbf{2.2176} & \textbf{2.1649} & \textbf{3.0382} & \textbf{2.8134} & \textbf{2.7641} \\
+\hline
+\end{tabular}
+\label{tab:mp4}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 4: MULTIPROCESSING 8
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con multiprocesamiento de 8 procesos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Multiprocesamiento 8 Procesos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.0549 & 0.3766 & 0.8910 & 1.6376 & 3.7895 & 5.5984 & 9.9653 & 16.5489 & 18.3811 & 55.9836 & 78.0496 \\
+2  & 0.0467 & 0.3661 & 0.8717 & 1.6303 & 3.6902 & 5.5854 & 10.2524 & 16.3267 & 18.4539 & 56.1620 & 74.0835 \\
+3  & 0.0472 & 0.3659 & 0.8669 & 1.6391 & 3.7119 & 5.5973 & 10.1399 & 16.1195 & 18.3224 & 55.9941 & 78.0254 \\
+4  & 0.0474 & 0.3674 & 0.8649 & 1.6219 & 3.6828 & 5.5986 & 9.9896 & 16.9615 & 18.2717 & 55.7331 & 74.2517 \\
+5  & 0.0472 & 0.3679 & 0.8721 & 1.6386 & 3.7197 & 5.5578 & 10.1953 & 16.9784 & 18.3799 & 56.1122 & 77.7920 \\
+6  & 0.0495 & 0.3672 & 0.8623 & 1.6400 & 3.7202 & 5.5789 & 10.0123 & 16.7057 & 18.1576 & 53.4435 & 74.4321 \\
+7  & 0.0477 & 0.3704 & 0.8726 & 1.6418 & 3.6988 & 5.6358 & 10.0221 & 16.7594 & 18.5298 & 53.5845 & 78.3446 \\
+8  & 0.0472 & 0.3660 & 0.8659 & 1.6302 & 3.6425 & 5.6332 & 10.2889 & 16.4102 & 18.4909 & 53.6404 & 78.0693 \\
+9  & 0.0490 & 0.3667 & 0.8674 & 1.6432 & 3.7007 & 5.6245 & 9.9976 & 16.6198 & 18.3964 & 55.9157 & 77.6011 \\
+10 & 0.0476 & 0.3699 & 0.8677 & 1.6394 & 3.6835 & 5.5691 & 9.8521 & 16.9265 & 18.3498 & 53.4549 & 77.8144 \\
+\hline
+\textbf{Pr} & \textbf{0.0484} & \textbf{0.3684} & \textbf{0.8703} & \textbf{1.6362} & \textbf{3.7040} & \textbf{5.5979} & \textbf{10.0716} & \textbf{16.6357} & \textbf{18.3733} & \textbf{55.0024} & \textbf{76.8464} \\
+\hline
+\textbf{Speedup} & \textbf{4.5537} & \textbf{4.9754} & \textbf{4.2651} & \textbf{4.2346} & \textbf{4.4892} & \textbf{3.8350} & \textbf{3.5918} & \textbf{3.5869} & \textbf{4.0455} & \textbf{4.0224} & \textbf{3.9651} \\
+\hline
+\end{tabular}
+\label{tab:mp8}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 5: MULTIPROCESSING 16
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con multiprocesamiento de 16 procesos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Multiprocesamiento 16 Procesos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.0503 & 0.3668 & 0.8760 & 1.6357 & 3.5222 & 5.6300 & 9.9239 & 16.3558 & 19.2520 & 57.8405 & 81.0151 \\
+2  & 0.0488 & 0.3496 & 0.8633 & 1.6372 & 3.6314 & 5.6331 & 10.0311 & 16.4847 & 19.3700 & 57.7069 & 74.2280 \\
+3  & 0.0488 & 0.3628 & 0.8675 & 1.6222 & 3.6240 & 5.6727 & 9.8186 & 16.4386 & 18.9365 & 57.9585 & 74.2000 \\
+4  & 0.0477 & 0.3501 & 0.8575 & 1.6260 & 3.6179 & 5.7734 & 9.9010 & 16.7081 & 18.9564 & 57.9055 & 80.6712 \\
+5  & 0.0499 & 0.3567 & 0.8605 & 1.6303 & 3.6543 & 5.6252 & 9.8946 & 16.2126 & 18.8400 & 53.4439 & 80.9255 \\
+6  & 0.0497 & 0.3431 & 0.8627 & 1.6243 & 3.5315 & 5.6347 & 9.9530 & 16.5200 & 18.7527 & 53.5498 & 74.1465 \\
+7  & 0.0491 & 0.3518 & 0.8860 & 1.6263 & 3.5304 & 5.6652 & 9.8657 & 16.4069 & 18.8325 & 57.7699 & 80.8706 \\
+8  & 0.0446 & 0.3484 & 0.8640 & 1.6275 & 3.5837 & 5.6121 & 9.8626 & 16.6899 & 19.1566 & 53.5293 & 80.8009 \\
+9  & 0.0455 & 0.3451 & 0.8672 & 1.6259 & 3.6916 & 5.6330 & 10.0697 & 16.3585 & 19.2708 & 58.0269 & 74.1820 \\
+10 & 0.0462 & 0.3578 & 0.8693 & 1.6210 & 3.5811 & 5.6516 & 9.9337 & 16.3886 & 19.1688 & 53.5861 & 74.5170 \\
+\hline
+\textbf{Pr} & \textbf{0.0481} & \textbf{0.3532} & \textbf{0.8674} & \textbf{1.6276} & \textbf{3.5968} & \textbf{5.6531} & \textbf{9.9254} & \textbf{16.4564} & \textbf{19.0536} & \textbf{56.1317} & \textbf{77.5557} \\
+\hline
+\textbf{Speedup} & \textbf{4.5822} & \textbf{5.1888} & \textbf{4.2788} & \textbf{4.2572} & \textbf{4.6228} & \textbf{3.7977} & \textbf{3.6444} & \textbf{3.6259} & \textbf{3.9016} & \textbf{3.9413} & \textbf{3.9288} \\
+\hline
+\end{tabular}
+\label{tab:mp16}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 6: THREADS 2
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con hilos de 2 hilos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Hilos 2 Hilos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.1585 & 1.0467 & 2.3125 & 4.4521 & 9.5108 & 14.3277 & 25.6787 & 41.0976 & 50.4809 & 125.4056 & 173.0014 \\
+2  & 0.1356 & 1.0672 & 2.3566 & 4.4576 & 9.5778 & 14.2613 & 26.0394 & 41.1175 & 51.1017 & 125.0019 & 173.4423 \\
+3  & 0.1302 & 1.0713 & 2.3657 & 4.4230 & 9.6732 & 14.3871 & 25.9022 & 41.4932 & 50.7510 & 125.4363 & 172.0604 \\
+4  & 0.1304 & 1.0670 & 2.3743 & 4.4379 & 9.7277 & 14.5289 & 25.9027 & 41.5913 & 51.1354 & 124.7106 & 173.1689 \\
+5  & 0.1313 & 1.0716 & 2.3566 & 4.4529 & 9.6721 & 14.8376 & 25.8929 & 41.4118 & 51.1226 & 124.8950 & 175.0603 \\
+6  & 0.1330 & 1.0680 & 2.3656 & 4.4277 & 9.7212 & 14.7336 & 26.1578 & 41.5716 & 50.8867 & 125.0327 & 171.5349 \\
+7  & 0.1435 & 1.0691 & 2.3645 & 4.4633 & 9.5206 & 14.6598 & 26.1693 & 41.4899 & 50.7663 & 124.6779 & 173.7851 \\
+8  & 0.1403 & 1.0768 & 2.3635 & 4.4144 & 9.5698 & 14.5142 & 26.0777 & 41.3939 & 50.9926 & 125.1802 & 173.7498 \\
+9  & 0.1300 & 1.0684 & 2.3610 & 4.4572 & 9.7306 & 14.5497 & 25.9796 & 41.9432 & 51.1916 & 124.7894 & 171.0221 \\
+10 & 0.1395 & 1.0727 & 2.3649 & 4.4147 & 9.6082 & 14.7738 & 26.1910 & 42.3562 & 51.3235 & 125.3971 & 174.0787 \\
+\hline
+\textbf{Pr} & \textbf{0.1372} & \textbf{1.0679} & \textbf{2.3585} & \textbf{4.4401} & \textbf{9.6312} & \textbf{14.5574} & \textbf{25.9991} & \textbf{41.5466} & \textbf{50.9752} & \textbf{125.0527} & \textbf{173.0904} \\
+\hline
+\textbf{Speedup} & \textbf{1.6061} & \textbf{1.7163} & \textbf{1.5738} & \textbf{1.5605} & \textbf{1.7264} & \textbf{1.4747} & \textbf{1.3914} & \textbf{1.4361} & \textbf{1.4582} & \textbf{1.7692} & \textbf{1.7605} \\
+\hline
+\end{tabular}
+\label{tab:t2}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 7: THREADS 4
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con hilos de 4 hilos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Hilos 4 Hilos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.0703 & 0.5526 & 1.2178 & 2.2404 & 5.1057 & 8.0305 & 17.7012 & 27.5102 & 26.6623 & 80.7243 & 115.9338 \\
+2  & 0.0702 & 0.5598 & 1.2077 & 2.2489 & 5.1196 & 7.8173 & 18.0109 & 27.7699 & 26.6433 & 80.9598 & 114.0581 \\
+3  & 0.0708 & 0.5536 & 1.2092 & 2.2476 & 5.1608 & 8.0133 & 17.7117 & 27.6326 & 26.6152 & 83.0205 & 115.1659 \\
+4  & 0.0690 & 0.5536 & 1.2136 & 2.2531 & 5.1418 & 8.0435 & 17.7692 & 28.3576 & 26.5415 & 81.2420 & 112.2903 \\
+5  & 0.0720 & 0.5524 & 1.2121 & 2.2580 & 5.2125 & 8.0535 & 18.0199 & 27.7976 & 26.7625 & 80.4647 & 115.1236 \\
+6  & 0.0700 & 0.5500 & 1.2154 & 2.2514 & 5.2031 & 7.9404 & 17.8560 & 28.1445 & 26.6008 & 83.0187 & 112.6888 \\
+7  & 0.0751 & 0.5525 & 1.2101 & 2.2533 & 5.0779 & 8.0344 & 17.8495 & 28.1273 & 26.5698 & 83.2336 & 112.4521 \\
+8  & 0.0695 & 0.5522 & 1.2310 & 2.2518 & 5.1341 & 7.9472 & 17.9709 & 28.0883 & 26.6593 & 82.3411 & 111.7698 \\
+9  & 0.0761 & 0.5543 & 1.2216 & 2.2548 & 5.1755 & 7.9691 & 17.9720 & 27.9404 & 26.6689 & 81.6599 & 115.3545 \\
+10 & 0.0734 & 0.5488 & 1.2131 & 2.2525 & 5.3100 & 7.9056 & 17.0549 & 28.4616 & 26.8611 & 80.9965 & 114.7393 \\
+\hline
+\textbf{Pr} & \textbf{0.0716} & \textbf{0.5530} & \textbf{1.2152} & \textbf{2.2512} & \textbf{5.1641} & \textbf{7.9755} & \textbf{17.7916} & \textbf{27.9830} & \textbf{26.6585} & \textbf{81.7661} & \textbf{113.9576} \\
+\hline
+\textbf{Speedup} & \textbf{3.0782} & \textbf{3.3144} & \textbf{3.0545} & \textbf{3.0778} & \textbf{3.2198} & \textbf{2.6920} & \textbf{2.0333} & \textbf{2.1322} & \textbf{2.7878} & \textbf{2.7052} & \textbf{2.6739} \\
+\hline
+\end{tabular}
+\label{tab:t4}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 8: THREADS 8
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con hilos de 8 hilos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Hilos 8 Hilos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.0573 & 0.4218 & 1.0330 & 1.9726 & 4.1213 & 6.3187 & 10.8679 & 17.1915 & 20.7515 & 55.6723 & 82.7801 \\
+2  & 0.0536 & 0.4213 & 1.0403 & 1.9254 & 4.2799 & 6.3374 & 10.7572 & 17.4987 & 20.7460 & 55.7524 & 77.2184 \\
+3  & 0.0544 & 0.4230 & 1.0297 & 1.9128 & 4.1970 & 6.3521 & 10.8000 & 17.2395 & 20.8624 & 55.5634 & 82.8891 \\
+4  & 0.0531 & 0.4215 & 1.0332 & 1.9204 & 4.2882 & 6.2861 & 10.9216 & 17.6852 & 21.0830 & 55.5824 & 83.0148 \\
+5  & 0.0547 & 0.4188 & 1.0358 & 1.9152 & 4.1329 & 6.3347 & 10.8504 & 17.4252 & 21.0524 & 59.7375 & 77.1269 \\
+6  & 0.0538 & 0.4237 & 1.0347 & 1.9291 & 4.2493 & 6.3281 & 10.8027 & 17.3696 & 20.7369 & 55.5782 & 77.1369 \\
+7  & 0.0536 & 0.4227 & 1.0386 & 1.9090 & 4.2943 & 6.3875 & 10.7172 & 17.1802 & 20.6706 & 55.6648 & 77.4578 \\
+8  & 0.0546 & 0.4194 & 1.0520 & 1.9140 & 4.2078 & 6.3892 & 10.8096 & 17.4044 & 21.0706 & 59.5526 & 83.0382 \\
+9  & 0.0534 & 0.4231 & 1.0331 & 1.9179 & 4.1937 & 6.2961 & 10.9203 & 17.0399 & 20.8105 & 55.6902 & 77.3173 \\
+10 & 0.0545 & 0.4208 & 1.0398 & 1.9219 & 4.2585 & 6.3874 & 10.7730 & 17.6387 & 20.7884 & 59.5777 & 77.1781 \\
+\hline
+\textbf{Pr} & \textbf{0.0543} & \textbf{0.4216} & \textbf{1.0370} & \textbf{1.9238} & \textbf{4.2223} & \textbf{6.3417} & \textbf{10.8220} & \textbf{17.3673} & \textbf{20.8572} & \textbf{56.8371} & \textbf{79.5158} \\
+\hline
+\textbf{Speedup} & \textbf{4.0589} & \textbf{4.3464} & \textbf{3.5793} & \textbf{3.6014} & \textbf{3.9378} & \textbf{3.3853} & \textbf{3.3425} & \textbf{3.4357} & \textbf{3.5638} & \textbf{3.8923} & \textbf{3.8321} \\
+\hline
+\end{tabular}
+\label{tab:t8}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+%% TABLE 9: THREADS 16
+\begin{table}[h!]
+\centering
+\caption{Resultados de la ejecución con hilos de 16 hilos.}
+\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\multicolumn{12}{|c|}{\textbf{Hilos 16 Hilos}} \\
+\hline
+\textbf{Dim} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+\hline
+1  & 0.0525 & 0.3958 & 1.0368 & 1.9217 & 4.0339 & 6.4287 & 10.8811 & 17.6791 & 21.4173 & 54.5786 & 83.5712 \\
+2  & 0.0503 & 0.3975 & 1.0236 & 1.9008 & 4.1384 & 6.3875 & 10.7949 & 17.7655 & 21.2964 & 60.4073 & 75.5840 \\
+3  & 0.0530 & 0.4044 & 1.0128 & 1.9008 & 4.0749 & 6.4268 & 10.8171 & 17.4265 & 20.5444 & 60.3446 & 83.7214 \\
+4  & 0.0495 & 0.3924 & 1.0254 & 1.9042 & 4.1488 & 6.3846 & 10.6992 & 17.8138 & 21.5651 & 60.3970 & 83.6631 \\
+5  & 0.0516 & 0.3990 & 1.0159 & 1.9305 & 4.0776 & 6.3870 & 10.8827 & 17.7889 & 21.2278 & 54.6226 & 83.6623 \\
+6  & 0.0503 & 0.3976 & 1.0236 & 1.9063 & 4.0004 & 6.4359 & 10.7500 & 17.7789 & 21.3861 & 60.3667 & 83.7884 \\
+7  & 0.0512 & 0.3956 & 1.0316 & 1.9131 & 4.1356 & 6.4085 & 10.7597 & 17.6210 & 21.1517 & 54.6609 & 75.6386 \\
+8  & 0.0524 & 0.4005 & 1.0199 & 1.9381 & 4.0653 & 6.3862 & 10.8450 & 17.7816 & 20.9505 & 60.4155 & 75.5876 \\
+9  & 0.0490 & 0.3932 & 1.0157 & 1.9017 & 4.0454 & 6.4283 & 10.6521 & 17.9115 & 21.1348 & 60.4150 & 75.7416 \\
+10 & 0.0530 & 0.3963 & 1.0221 & 1.8891 & 4.1219 & 6.4126 & 10.9592 & 17.8338 & 21.1554 & 60.1099 & 83.3277 \\
+\hline
+\textbf{Pr} & \textbf{0.0513} & \textbf{0.3972} & \textbf{1.0227} & \textbf{1.9106} & \textbf{4.0842} & \textbf{6.4086} & \textbf{10.8041} & \textbf{17.7401} & \textbf{21.1830} & \textbf{58.6318} & \textbf{80.4286} \\
+\hline
+\textbf{Speedup} & \textbf{4.2965} & \textbf{4.6139} & \textbf{3.6295} & \textbf{3.6264} & \textbf{4.0712} & \textbf{3.3498} & \textbf{3.3481} & \textbf{3.3638} & \textbf{3.5090} & \textbf{3.7735} & \textbf{3.7884} \\
+\hline
+\end{tabular}
+\label{tab:t16}
+\footnotesize{Fuente: Elaboración propia.}
+\end{table}
+
+% % --- Table 1: Sequential variants ---
+% \subsection{Variantes secuenciales}
+
+% \begin{landscape}
+% \begin{table}[h!]
+% \centering
+% \caption{Tiempo promedio de ejecución (s) --- Variantes secuenciales}
+% \label{tab:seq}
+% \begin{adjustbox}{width=\linewidth}
+% \begin{tabular}{lrrrrrrrrrrr}
+% \toprule
+% \textbf{Implementación} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+% \midrule
+% Secuencial         & 0.226 & 1.840 & 3.732 & 6.981 & 17.155 & 21.885 & 37.355 & 61.391 & 76.236 & 223.768 & 307.695 \\
+% Secuencial (\texttt{-O2}) & 0.091 & 0.806 & 1.425 & 2.605 &  9.421 &  8.522 & 18.864 & 33.747 & 30.220 & 155.572 & 214.995 \\
+% Memoria (transpuesta)     & 0.163 & 1.170 & 2.552 & 4.768 &  9.268 & 14.093 & 20.346 & 31.206 & 41.513 &  53.724 &  73.905 \\
+% \bottomrule
+% \end{tabular}
+% \end{adjustbox}
+% \end{table}
+
+% % --- Table 2: Threads ---
+% \begin{table}[h!]
+% \centering
+% \caption{Tiempo promedio de ejecución (s) --- Hilos POSIX (\texttt{pthread})}
+% \label{tab:threads}
+% \begin{adjustbox}{width=\linewidth}
+% \begin{tabular}{lrrrrrrrrrrr}
+% \toprule
+% \textbf{Hilos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+% \midrule
+%  2 & 0.145 & 1.057 & 2.334 & 4.455 &  9.544 & 14.294 & 25.859 & 41.107 & 50.791 & 125.203 & 173.222 \\
+%  4 & 0.070 & 0.556 & 1.213 & 2.245 &  5.113 &  7.924 & 17.856 & 27.640 & 26.653 &  80.842 & 114.996 \\
+%  8 & 0.055 & 0.421 & 1.037 & 1.949 &  4.201 &  6.328 & 10.813 & 17.345 & 20.749 &  55.712 &  79.999 \\
+% 16 & 0.051 & 0.397 & 1.030 & 1.911 &  4.086 &  6.408 & 10.838 & 17.722 & 21.357 &  57.493 &  79.578 \\
+% \bottomrule
+% \end{tabular}
+% \end{adjustbox}
+% \end{table}
+
+% % --- Table 3: Multiprocessing ---
+% \begin{table}[h!]
+% \centering
+% \caption{Tiempo promedio de ejecución (s) --- Multiprocesamiento (\texttt{fork})}
+% \label{tab:mp}
+% \begin{adjustbox}{width=\linewidth}
+% \begin{tabular}{lrrrrrrrrrrr}
+% \toprule
+% \textbf{Procesos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+% \midrule
+%  2 & 0.129 & 0.938 & 1.953 & 3.984 &  8.608 & 12.924 & 23.279 & 37.491 & 44.625 & 113.339 & 155.613 \\
+%  4 & 0.061 & 0.485 & 1.013 & 1.902 &  4.570 &  6.907 & 16.349 & 27.774 & 24.555 &  77.886 & 110.092 \\
+%  8 & 0.051 & 0.371 & 0.881 & 1.634 &  3.740 &  5.592 & 10.109 & 16.438 & 18.418 &  56.073 &  76.066 \\
+% 16 & 0.049 & 0.358 & 0.869 & 1.636 &  3.577 &  5.631 &  9.977 & 16.420 & 19.311 &  57.774 &  77.621 \\
+% \bottomrule
+% \end{tabular}
+% \end{adjustbox}
+% \end{table}
+% \end{landscape}
+
+% % --- Table 4: Speedup threads ---
+% \subsection{Speedup respecto a la ejecución secuencial}
+
+% \begin{landscape}
+% \begin{table}[h!]
+% \centering
+% \caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Variantes secuenciales optimizadas}
+% \label{tab:speedup_seq}
+% \begin{adjustbox}{width=\linewidth}
+% \begin{tabular}{lrrrrrrrrrrr}
+% \toprule
+% \textbf{Implementación} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+% \midrule
+% Secuencial (\texttt{-O2}) & 2.48 & 2.28 & 2.62 & 2.68 & 1.82 & 2.57 & 1.98 & 1.82 & 2.52 & 1.44 & 1.43 \\
+% Memoria (transpuesta)     & 1.39 & 1.57 & 1.46 & 1.46 & 1.85 & 1.55 & 1.84 & 1.97 & 1.84 & 4.17 & 4.16 \\
+% \bottomrule
+% \end{tabular}
+% \end{adjustbox}
+% \end{table}
+
+% \begin{table}[h!]
+% \centering
+% \caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Hilos POSIX}
+% \label{tab:speedup_threads}
+% \begin{adjustbox}{width=\linewidth}
+% \begin{tabular}{lrrrrrrrrrrr}
+% \toprule
+% \textbf{Hilos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+% \midrule
+%  2 & 1.56 & 1.74 & 1.60 & 1.57 & 1.80 & 1.53 & 1.44 & 1.49 & 1.50 & 1.79 & 1.78 \\
+%  4 & 3.23 & 3.31 & 3.08 & 3.11 & 3.35 & 2.76 & 2.09 & 2.22 & 2.86 & 2.77 & 2.68 \\
+%  8 & 4.11 & 4.37 & 3.60 & 3.58 & 4.08 & 3.46 & 3.45 & 3.54 & 3.67 & 4.02 & 3.85 \\
+% 16 & 4.43 & 4.63 & 3.62 & 3.65 & 4.20 & 3.41 & 3.45 & 3.47 & 3.57 & 3.89 & 3.87 \\
+% \bottomrule
+% \end{tabular}
+% \end{adjustbox}
+% \end{table}
+
+% \begin{table}[h!]
+% \centering
+% \caption{Speedup $S_p = T_{\text{sec}} / T_p$ --- Multiprocesamiento (\texttt{fork})}
+% \label{tab:speedup_mp}
+% \begin{adjustbox}{width=\linewidth}
+% \begin{tabular}{lrrrrrrrrrrr}
+% \toprule
+% \textbf{Procesos} & \textbf{500} & \textbf{1000} & \textbf{1300} & \textbf{1600} & \textbf{2000} & \textbf{2300} & \textbf{2600} & \textbf{3000} & \textbf{3300} & \textbf{3600} & \textbf{4000} \\
+% \midrule
+%  2 & 1.75 & 1.96 & 1.91 & 1.75 & 1.99 & 1.69 & 1.60 & 1.64 & 1.71 & 1.97 & 1.98 \\
+%  4 & 3.70 & 3.79 & 3.68 & 3.67 & 3.75 & 3.17 & 2.28 & 2.21 & 3.10 & 2.87 & 2.80 \\
+%  8 & 4.43 & 4.96 & 4.24 & 4.27 & 4.59 & 3.91 & 3.70 & 3.73 & 4.14 & 3.99 & 4.04 \\
+% 16 & 4.61 & 5.14 & 4.29 & 4.27 & 4.80 & 3.88 & 3.74 & 3.74 & 3.95 & 3.87 & 3.96 \\
+% \bottomrule
+% \end{tabular}
+% \end{adjustbox}
+% \end{table}
+% \end{landscape}
 
 % --- Graphs ---
-\subsection{Gráficas comparativas}
+\section{Gráficas comparativas}
 
 \begin{figure}[H]
 \centering
@@ -422,8 +765,7 @@ Los procesos con \texttt{fork} muestran speedups ligeramente superiores a los hi
 
     \item \textbf{Hilos y procesos son equivalentes en rendimiento}: ambas estrategias producen speedups muy similares. La ligera ventaja de los procesos en algunos casos se debe a diferencias en la semántica de medición de tiempo de CPU, no a una superioridad real del multiprocesamiento.
 
-    \item \textbf{El crecimiento $\mathcal{O}(n^3)$ domina para dimensiones grandes}: incluso con 16 trabajadores y el algoritmo transpuesto, multiplicar matrices de 4000×4000 toma $\approx 73$ segundos. Para aplicaciones reales con matrices masivas, algoritmos sub-cúbicos (Strassen, BLAS optimizado) son necesarios.
-\end{enumerate}
+    \end{enumerate}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Bibliografía}
