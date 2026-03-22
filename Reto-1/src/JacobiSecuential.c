@@ -1,4 +1,4 @@
-
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -23,29 +23,6 @@ double force(double x)
  * RESIDUAL COMPUTATION
  * ========================================================================= */
 
-/*
- * compute_rms_residual()
- * ----------------------
- * Computes the RMS (root-mean-square) norm of the residual vector r = A*u - f.
- *
- * The PDF uses this as the convergence criterion (Section 9). It guarantees
- * that if RMS is small, the approximate solution satisfies the linear system
- * on average to that tolerance — even if we don't know the exact solution.
- *
- * For the boundary rows (j=0 and j=N-1) the equation is simply u[j] = 0,
- * so the residual contribution is (u[j] - f[j]) = (0 - 0) = 0 always.
- *
- * For interior rows the Poisson operator gives:
- *   (A*u)[j] = (-u[j-1] + 2*u[j] - u[j+1]) / h²
- *
- * Parameters:
- *   u   : current solution vector (length N)
- *   f   : right-hand side vector  (length N)
- *   N   : number of grid nodes
- *   h   : mesh spacing
- *
- * Returns: RMS norm of the residual, sqrt( sum(r[j]²) / N )
- */
 double compute_rms_residual(double *u, double *f, int N, double h)
 {
     double h2     = h * h;           /* h²                             */
@@ -86,39 +63,6 @@ double compute_rms_residual(double *u, double *f, int N, double h)
  * JACOBI ITERATION
  * ========================================================================= */
 
-/*
- * jacobi()
- * --------
- * Performs Jacobi iteration on the discretized Poisson system until the
- * RMS residual drops below the given tolerance, or until max_iter is reached.
- *
- * The update formula for interior node j (derived in Section 8 of the PDF):
- *
- *   u_new[j] = (f[j]*h² + u_old[j-1] + u_old[j+1]) / 2
- *
- * This comes from isolating u[j] in the unscaled stencil equation:
- *
- *   -u[j-1]/h² + 2*u[j]/h² - u[j+1]/h² = f[j]
- *   =>  2*u[j]/h² = f[j] + u[j-1]/h² + u[j+1]/h²
- *   =>  u[j]      = (f[j]*h² + u[j-1] + u[j+1]) / 2
- *
- * ALL interior nodes are updated using ONLY old values (u_old), never the
- * partially-updated new values. This is the defining property of Jacobi
- * (vs. Gauss-Seidel which would use new values as they become available).
- *
- * The PDF notes (Section 11) that for this problem, as N doubles the
- * iteration count grows by a factor of ~4, giving O(N³) total cost.
- *
- * Parameters:
- *   u        : on entry, initial guess (usually zeros); on exit, solution
- *   f        : right-hand side vector (length N)
- *   N        : number of grid nodes
- *   h        : mesh spacing
- *   tol      : convergence tolerance on the RMS residual
- *   max_iter : safety limit on iteration count (failsafe only)
- *
- * Returns: number of iterations performed
- */
 int jacobi(double *u, double *f, int N, double h, double tol, int max_iter)
 {
     double *u_old;        /* snapshot of u before each sweep */
@@ -209,7 +153,11 @@ int main(int argc, char *argv[])
      * Parse the grid index k from the command line.
      * k determines the grid size: N = 2^k + 1
      */
-    int k;
+
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    int k = atoi(argv[1]);
     if (argc < 2)
     {
         fprintf(stderr, "Usage: %s <k>\n", argv[0]);
@@ -326,8 +274,14 @@ int main(int argc, char *argv[])
     free(u);
     free(ue);
 
+  clock_gettime(CLOCK_MONOTONIC, &end);
+
+  double elapsed = (end.tv_sec - start.tv_sec) +
+                    (end.tv_nsec - start.tv_nsec) / 1e9;
+
     printf("\n");
     printf("JACOBI_POISSON_1D: normal end of execution.\n");
+    printf("%.6f,",elapsed);
 
     return 0;
 }
