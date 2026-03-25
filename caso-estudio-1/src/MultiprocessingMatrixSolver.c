@@ -6,7 +6,7 @@
 #include <sys/mman.h>
 
 // Function to allocate memory for a matrix
-int** create_matrix(int rows, int cols) {
+int** create_matrix(int rows, int cols) {·
     int** matrix = (int**)malloc(rows * sizeof(int*));
     if (!matrix) { perror("malloc failed (matrix rows)"); exit(1); }
     for (int i = 0; i < rows; i++) {
