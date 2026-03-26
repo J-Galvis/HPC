@@ -117,10 +117,29 @@ La convergencia se verifica en términos del residuo cuadrático medio (RMS):
 \quad
   r_j = (Au^{(k)})_j - f_j,
 \]
-deteniéndose cuando $\text{RMS} \leq \varepsilon = 10^{-6}$.  El número de
-iteraciones necesarias crece aproximadamente como $\mathcal{O}(N^2)$, por lo que
-para $k=11$ ($N=2\,049$) se requieren más de 12 millones de
-barridos~\cite{burkardt}.
+deteniéndose cuando $\text{RMS} \leq \varepsilon$.
+
+\textbf{Tolerancia empleada.}  En todas las implementaciones se fijó
+\[
+  \varepsilon = 10^{-6} \quad (\texttt{double tol = 1.0e-6}),
+\]
+valor que equilibra precisión numérica y costo computacional: es lo
+suficientemente pequeño para obtener una solución cercana a la exacta
+($\|u^{(k)} - u_{\text{exact}}\|_{\text{RMS}} \approx \mathcal{O}(h^2)$), pero
+evita el costo de llevar el residuo a la precisión de máquina ($\sim 10^{-15}$),
+lo cual multiplicaría el número de iteraciones por varios órdenes de magnitud.
+
+\textbf{Criterio de parada e impacto en el conteo de iteraciones.}  El algoritmo
+evalúa el RMS tras cada barrido (o cada 50 barridos en la variante
+\texttt{JacobiMemory}) y detiene la iteración en cuanto $\text{RMS} \leq 10^{-6}$.
+El número de iteraciones resultante depende fuertemente del tamaño de la malla:
+dado que el radio espectral del método de Jacobi para este sistema es
+$\rho \approx 1 - \pi^2 h^2 / 2$, la tasa de convergencia decae como
+$\mathcal{O}(h^2)$ y el número de iteraciones crece como $\mathcal{O}(N^2)$.
+Para $k=11$ ($N=2\,049$, $h \approx 4.9\times10^{-4}$) el algoritmo requiere
+aproximadamente $12.7$ millones de barridos antes de satisfacer la tolerancia,
+lo que convierte el costo de la sincronización paralela en el factor dominante
+del tiempo de ejecución~\cite{burkardt}.
 
 \subsection{Localidad de caché y optimización de acceso}
 
