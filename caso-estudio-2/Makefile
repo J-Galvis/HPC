@@ -16,7 +16,7 @@ else
 endif
 
 all: $(OUT)/secuential $(OUT)/secuentialFlags $(OUT)/memory $(OUT)/threads \
-     $(OUT)/multiprocessing $(OUT)/openmp $(OUT)/openmp_memory
+     $(OUT)/multiprocessing $(OUT)/openmp $(OUT)/openmp_memory $(OUT)/profiling
 
 $(OUT):
 	mkdir -p $(OUT)
@@ -41,6 +41,9 @@ $(OUT)/openmp: $(SRC)/OpenMPMatrixSolver.c | $(OUT)
 
 $(OUT)/openmp_memory: $(SRC)/OpenMPMemoryMatrixSolver.c | $(OUT)
 	$(CC) $(OMP_FLAGS) -o $@ $<
+
+$(OUT)/profiling: $(SRC)/SecuentialMatrixSolver.c | $(OUT)
+	$(CC) -g -pg -O0 -o $@ $<
 
 clean:
 	rm -rf $(OUT)
