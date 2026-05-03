@@ -23,8 +23,7 @@ mkdir -p "$ROOT_DIR/output"
 mkdir -p "$STATS_DIR"
 
 k=(10000 25000 50000 75000 100000 125000 150000 175000 200000 225000 250000 275000 300000)
-density_steps=2
-num_proccesses=(2 4 8 16)
+density_steps=20
 
 SECUENTIAL_FILE="$STATS_DIR/secuential.csv"
 CHECKPOINT_FILE="$STATS_DIR/.checkpoint"
