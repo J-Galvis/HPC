@@ -23,9 +23,12 @@ mkdir -p "$ROOT_DIR/output"
 mkdir -p "$STATS_DIR"
 
 k=(10000 25000 50000 75000 100000 125000 150000 175000 200000 225000 250000 275000 300000)
+
 density_steps=20
 
 SECUENTIAL_FILE="$STATS_DIR/secuential.csv"
+PARALLEL_FILE="$STATS_DIR/parallel.csv"
+MEMORY_FILE="$STATS_DIR/memory.csv"
 CHECKPOINT_FILE="$STATS_DIR/.checkpoint"
 
 # Helper: check if a combination was already completed successfully
@@ -66,12 +69,34 @@ run_safe() {
 # ─── SECUENTIAL ──────────────────────────────────────────────────────────────
 echo "Secuential testing in process ..."
 
-for j in $(seq 1 10); do
+for j in $(seq 1 2); do
   for i in "${k[@]}"; do
     key="secuential,${i},run${j}"
     run_safe "$key" "$SECUENTIAL_FILE" "$ROOT_DIR/output/secuential" "$i" "$density_steps"
   done
   echo "" >>"$SECUENTIAL_FILE"
+done
+
+# ─── PARALLEL ──────────────────────────────────────────────────────────────
+echo "Parallel testing in process ..."
+
+for j in $(seq 1 2); do
+  for i in "${k[@]}"; do
+    key="parallel,${i},run${j}"
+    run_safe "$key" "$PARALLEL_FILE" "$ROOT_DIR/output/parallel" "$i" "$density_steps"
+  done
+  echo "" >>"$PARALLEL_FILE"
+done
+
+# ─── MEMORY ──────────────────────────────────────────────────────────────
+echo "Memory testing in process ..."
+
+for j in $(seq 1 2); do
+  for i in "${k[@]}"; do
+    key="memory,${i},run${j}"
+    run_safe "$key" "$MEMORY_FILE" "$ROOT_DIR/output/memory" "$i" "$density_steps"
+  done
+  echo "" >>"$MEMORY_FILE"
 done
 
 

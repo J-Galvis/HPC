@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
     clock_gettime(CLOCK_MONOTONIC, &end);
     double elapsed = (end.tv_sec  - start.tv_sec) +
                      (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("%.6f,\n", elapsed);
+    printf("%.6f,", elapsed);
 
     return EXIT_SUCCESS;
 }
